@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #f1f8fe;
+  --color-brand-100: #e2f2fc;
+  --color-brand-200: #c6e6f9;
+  --color-brand-300: #9dd4f3;
+  --color-brand-400: #74c3ee;
+  --color-brand-500: #52b4e6;
+  --color-brand-600: #3a9fd4;
+  --color-brand-700: #2b80b0;
+
+  --color-ink: #0f3a5c;
+  --color-ink-soft: #5b7891;
+  --color-ink-mute: #8ea5b8;
+  --color-line: #e3edf6;
+  --color-canvas: #eaf3fc;
+  --color-tile: #f5f9fd;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@utility card {
+  @apply rounded-2xl border border-line bg-white;
+}
+@utility row-card {
+  @apply rounded-xl border border-line bg-white transition;
+}
+@utility row-card-active {
+  @apply border-brand-500 bg-brand-500 text-white;
+}
+@utility label-xs {
+  @apply text-[10px] leading-tight text-ink-soft;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none;
+}
+@utility btn-primary {
+  @apply btn bg-brand-500 text-white shadow-sm shadow-brand-500/30 hover:bg-brand-600;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-white text-ink hover:bg-brand-50;
+}
+@utility btn-danger {
+  @apply btn bg-red-500 text-white hover:bg-red-600;
+}
+@utility input {
+  @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-mute focus:border-brand-400 focus:ring-4 focus:ring-brand-100;
+}
+@utility icon-box {
+  @apply grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-tile text-ink-soft;
+}
+@utility hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-brand-200) 0 2px,
+    transparent 2px 6px
+  );
+}
+@utility hatch-strong {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-brand-500) 0 2.5px,
+    var(--color-brand-100) 2.5px 6px
+  );
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-brand-200) transparent;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scanline {
+  0%,
+  100% {
+    top: 10%;
+  }
+  50% {
+    top: 85%;
+  }
+}
+.animate-pop {
+  animation: pop 0.18s ease-out;
+}
+.animate-fade {
+  animation: fade 0.15s ease-out;
+}
+.animate-slide-down {
+  animation: slide-down 0.25s ease-out;
+}
+.animate-scan {
+  animation: scanline 1.8s ease-in-out infinite;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 80mm;
+  }
+}
