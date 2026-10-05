@@ -103,7 +103,7 @@ export default function PosCatalog({ query, onPick }: { query: string; onPick: (
     `flex shrink-0 items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-medium transition ${active ? 'border-brand-500 bg-brand-500 text-white shadow-md shadow-brand-500/25' : 'border-line bg-white text-ink hover:bg-brand-50'}`
 
   return (
-    <section className="card flex min-h-[480px] flex-col gap-3 p-3 lg:min-h-0">
+    <section className="card flex min-h-[480px] flex-col gap-3 p-3 md:min-h-0">
       {promos.length > 0 && !query && (
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-thin">
           {promos.map((p) => (

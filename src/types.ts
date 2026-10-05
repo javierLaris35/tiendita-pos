@@ -404,4 +404,6 @@ export interface ChatMessage {
   from: 'customer' | 'bot'
   text: string
   date: string
+  /** Pase de recolección adjunto (id del pedido): se dibuja con su QR dentro del chat */
+  orderPass?: string
 }

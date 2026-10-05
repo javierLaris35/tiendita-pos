@@ -61,7 +61,7 @@ export default function PosHeader({ query, onQuery, onSubmit, inputRef, session,
       ]
 
   return (
-    <header className="flex items-stretch gap-2 sm:gap-3">
+    <header className="flex flex-wrap items-stretch gap-2 md:flex-nowrap md:gap-3">
       <div className="card hidden items-center px-4 md:flex">
         <Logo textClass="text-sm" />
       </div>
@@ -70,7 +70,7 @@ export default function PosHeader({ query, onQuery, onSubmit, inputRef, session,
           e.preventDefault()
           onSubmit()
         }}
-        className={`card flex min-w-0 flex-1 items-center gap-3 px-4 py-3 transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100 ${session ? '' : 'pointer-events-none bg-tile [&_input]:placeholder:text-ink-mute'}`}
+        className={`card order-last flex min-w-0 basis-full items-center gap-3 px-4 py-3 transition md:order-none md:basis-auto md:flex-1 focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100 ${session ? '' : 'pointer-events-none bg-tile [&_input]:placeholder:text-ink-mute'}`}
       >
         <ScanBarcode className="size-5 shrink-0 text-brand-500" />
         <input
@@ -94,19 +94,19 @@ export default function PosHeader({ query, onQuery, onSubmit, inputRef, session,
         )}
       </form>
       {session && (
-        <div className="card flex shrink-0 items-center gap-1 p-1">
+        <div className="card flex min-w-0 flex-1 items-center justify-around gap-0.5 p-1 md:flex-none md:justify-start md:gap-1">
           {TOOLS.map(({ action, label, key, icon: Icon }) => (
             <button key={action} onClick={() => onAction(action)} title={`${label} (${key})`} className="relative flex flex-col items-center gap-0.5 rounded-xl px-2.5 py-1.5 text-ink transition hover:bg-brand-50 xl:flex-row xl:gap-2 xl:px-3">
               {action === 'orders' && waiting > 0 && <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-orange-500 text-[9px] font-bold text-white">{waiting}</span>}
               <Icon className="size-5 text-brand-600" />
-              <span className="text-[10px] font-medium xl:text-xs">{label}</span>
+              <span className="hidden text-[10px] font-medium sm:inline xl:text-xs">{label}</span>
               <kbd className="hidden rounded border border-line px-1 text-[9px] text-ink-mute 2xl:inline">{key}</kbd>
             </button>
           ))}
         </div>
       )}
-      <div className={`flex shrink-0 flex-col justify-center rounded-2xl px-4 text-white ${session ? 'bg-ink' : 'bg-ink-soft'}`}>
-        <p className="text-base font-bold leading-tight tracking-wide sm:text-lg">{session ? registerLabel(session.register).toUpperCase() : 'CAJA CERRADA'}</p>
+      <div className={`flex shrink-0 flex-col justify-center rounded-2xl px-3 text-white sm:px-4 ${session ? 'bg-ink' : 'bg-ink-soft'} ${session ? '' : 'flex-1 md:flex-none'}`}>
+        <p className="whitespace-nowrap text-sm font-bold leading-tight tracking-wide sm:text-lg">{session ? registerLabel(session.register).toUpperCase() : 'CAJA CERRADA'}</p>
         <p className="hidden truncate text-[10px] text-white/70 sm:block">{branch?.name}</p>
       </div>
       <div className="card flex shrink-0 items-center gap-3 py-1.5 pl-1.5 pr-1">

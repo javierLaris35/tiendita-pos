@@ -4,6 +4,7 @@ import { ArrowLeft, Bell, CreditCard, MapPin, PackageSearch, Store } from 'lucid
 import ShopLayout from '../../components/shop/ShopLayout'
 import PromoLine from '../../components/ui/PromoLine'
 import { QrCode } from '../../components/qr/Qr'
+import OrderPass from '../../components/orders/OrderPass'
 import { ChannelBadge, OrderStepper, OrderTimeline, PaidBadge, StatusPill } from '../../components/orders/OrderParts'
 import { EmptyState } from '../../components/ui/Misc'
 import { useOrderStore } from '../../store/useOrderStore'
@@ -81,7 +82,13 @@ export default function OrderTrack() {
         </div>
 
         <div className="space-y-4">
-          {showQr && (
+          {showQr && order.fulfillment === 'pickup' && (
+            <section className="space-y-2">
+              <OrderPass order={order} />
+              <p className="text-center text-[11px] text-ink-soft">También te lo enviamos por WhatsApp al {order.phone}.</p>
+            </section>
+          )}
+          {showQr && order.fulfillment === 'instore' && (
             <section className="card flex flex-col items-center gap-2 p-5 text-center">
               <p className="text-sm font-semibold">{order.paid ? 'Muestra este código para recoger' : 'Muestra este código en caja para pagar'}</p>
               <QrCode value={orderQrValue(order.code)} size={190} />

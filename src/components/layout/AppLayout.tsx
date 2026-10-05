@@ -31,11 +31,14 @@ export default function AppLayout() {
   if (!user) return <Navigate to="/login" replace />
 
   return (
-    <div className="flex min-h-full gap-3 p-2.5 sm:p-3 lg:h-full">
+    <div className="flex min-h-full items-start gap-3 p-2.5 sm:p-3">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <Topbar />
-        <main className="min-h-0 flex-1">
+        {/* Barra superior fija: el fondo tapa el contenido que pasa por debajo al hacer scroll */}
+        <div className="sticky top-0 z-30 -mt-2.5 bg-canvas pt-2.5 sm:-mt-3 sm:pt-3">
+          <Topbar />
+        </div>
+        <main className="flex-1">
           <Outlet />
         </main>
       </div>

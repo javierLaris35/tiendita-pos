@@ -97,7 +97,8 @@ export const availableOf = (p: Pick<Product, 'id' | 'stock'>, reserved: Map<stri
 // ---------- Contenido de los códigos QR
 
 export const ORDER_QR_PREFIX = 'TPOS:PEDIDO:'
-export const orderQrValue = (code: string) => `${ORDER_QR_PREFIX}${code}`
+/** El QR del pedido lleva la liga de su seguimiento: el cliente lo abre con la cámara y la caja lo lee para verificarlo. */
+export const orderQrValue = (code: string, origin = window.location.origin) => `${origin}/tienda/pedido/${code}`
 
 /** Extrae un código de pedido de lo escaneado o escrito ("P-2001", "TPOS:PEDIDO:P-2001", "p2001"). */
 export function parseOrderCode(raw: string): string | null {

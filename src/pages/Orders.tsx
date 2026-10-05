@@ -7,7 +7,9 @@ import { Dropdown } from '../components/ui/Dropdown'
 import { useOrderStore } from '../store/useOrderStore'
 import { useBranchStore } from '../store/useBranchStore'
 import { toast } from '../store/useUiStore'
-import { setOrderStatus } from '../store/orderActions'
+import { findOrderByCode, setOrderStatus } from '../store/orderActions'
+import Modal from '../components/ui/Modal'
+import { CameraScanner } from '../components/qr/Qr'
 import { FINAL, nextStatus, primaryAction } from '../utils/orders'
 import { formatMoney, timeAgo } from '../utils/format'
 import type { Order, OrderChannel, PedidoStatus } from '../types'
@@ -83,6 +85,9 @@ export default function Orders() {
   const [branch, setBranch] = useState<string>(activeBranch)
   const [channel, setChannel] = useState<OrderChannel | 'all'>('all')
   const [open, setOpen] = useState<string | null>(null)
+  const [scanning, setScanning] = useState(false)
+  // En teléfono se ve una columna a la vez, elegida con pestañas
+  const [mobileCol, setMobileCol] = useState(COLUMNS[0].id)
 
   const visible = useMemo(() => {
     const dayAgo = Date.now() - 86400000
@@ -97,7 +102,7 @@ export default function Orders() {
   const stat = (fn: (o: Order) => boolean) => visible.filter(fn).length
 
   return (
-    <div className="flex flex-col gap-3 xl:h-full">
+    <div className="flex flex-col gap-3">
       <section className="card flex flex-wrap items-center gap-3 p-4">
         <div className="icon-box"><ShoppingBag className="size-5" /></div>
         <div className="mr-auto">
@@ -115,7 +120,10 @@ export default function Orders() {
             { value: 'scan', label: '📱 Escanea y paga' },
           ]}
         />
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
+          <button onClick={() => setScanning(true)} className="btn-primary px-3 py-2 text-xs" title="Leer el QR del cliente">
+            <ScanLine className="size-4" /> Escanear QR
+          </button>
           <button onClick={() => window.open('/tienda', '_blank')} className="btn-ghost px-3 py-2 text-xs" title="Abrir la tienda en línea">
             <Globe className="size-4" /> Tienda
           </button>
@@ -142,11 +150,27 @@ export default function Orders() {
         ))}
       </div>
 
-      <div className="-mx-1 flex min-h-[520px] flex-1 gap-3 overflow-x-auto px-1 pb-2 scrollbar-thin xl:min-h-0">
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 no-scrollbar md:hidden">
+        {COLUMNS.map((col) => {
+          const n = visible.filter((o) => col.statuses.includes(o.status)).length
+          return (
+            <button
+              key={col.id}
+              onClick={() => setMobileCol(col.id)}
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-medium ${mobileCol === col.id ? 'border-brand-500 bg-brand-500 text-white' : 'border-line bg-white text-ink'}`}
+            >
+              <span className={`size-2 rounded-full ${col.accent}`} />
+              {col.title}
+              <span className={`rounded-full px-1.5 text-[10px] ${mobileCol === col.id ? 'bg-white text-brand-700' : 'bg-tile'}`}>{n}</span>
+            </button>
+          )
+        })}
+      </div>
+      <div className="-mx-1 flex gap-3 px-1 pb-2 md:min-h-[520px] md:overflow-x-auto md:scrollbar-thin">
         {COLUMNS.map((col) => {
           const list = visible.filter((o) => col.statuses.includes(o.status)).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
           return (
-            <section key={col.id} className="flex w-72 shrink-0 flex-col rounded-2xl bg-white/60 p-2.5 xl:w-auto xl:min-w-52 xl:flex-1">
+            <section key={col.id} className={`${col.id === mobileCol ? 'flex' : 'hidden'} w-full shrink-0 flex-col rounded-2xl bg-tile p-2.5 md:flex md:w-72 xl:w-auto xl:min-w-52 xl:flex-1`}>
               <div className="mb-2 flex items-center gap-2 px-1">
                 <span className={`size-2.5 rounded-full ${col.accent}`} />
                 <p className="text-sm font-semibold">{col.title}</p>
@@ -167,6 +191,18 @@ export default function Orders() {
         })}
       </div>
       {open && <OrderDetailModal orderId={open} onClose={() => setOpen(null)} />}
+      {scanning && (
+        <Modal open onClose={() => setScanning(false)} icon={ScanLine} title="Escanear pedido" subtitle="Lee el QR del pase del cliente o escribe su código" width="max-w-md">
+          <CameraScanner
+            onResult={(text) => {
+              const order = findOrderByCode(text)
+              if (!order) return toast({ type: 'error', title: 'Pedido no encontrado', message: text })
+              setScanning(false)
+              setOpen(order.id)
+            }}
+          />
+        </Modal>
+      )}
     </div>
   )
 }

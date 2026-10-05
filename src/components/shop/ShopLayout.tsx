@@ -245,10 +245,12 @@ function CheckoutModal({ onClose }: { onClose: () => void }) {
 export default function ShopLayout({ children }: { children: ReactNode }) {
   const shopper = useShopper()
   const count = useWebCart((s) => s.items.length)
+  const cartItems = useWebCart((s) => s.items)
+  const { ticket: cartTicket } = useShopTicket(cartItems, null)
   const whatsapp = useSettingsStore((s) => s.whatsappNumber)
   const [cartOpen, setCartOpen] = useState(false)
   const [checkout, setCheckout] = useState(false)
-  const link = ({ isActive }: { isActive: boolean }) => `rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-ink hover:bg-tile'}`
+  const link = ({ isActive }: { isActive: boolean }) => `whitespace-nowrap rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-ink hover:bg-tile'}`
 
   return (
     <div className="min-h-full bg-canvas">
@@ -274,8 +276,24 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
         </div>
+        {/* En teléfono los enlaces bajan a su propio renglón deslizable */}
+        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2 no-scrollbar md:hidden">
+          <NavLink to="/tienda" end className={link}>Catálogo</NavLink>
+          <NavLink to="/tienda/cuenta" className={link}>Mis pedidos</NavLink>
+          <NavLink to="/scan" className={link}>Escanea y paga</NavLink>
+        </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-5">{children}</main>
+      <main className={`mx-auto max-w-6xl px-4 py-5 ${count ? 'pb-28 md:pb-5' : ''}`}>{children}</main>
+      {count > 0 && !cartOpen && !checkout && (
+        <button
+          onClick={() => setCartOpen(true)}
+          className="fixed inset-x-3 bottom-3 z-30 flex items-center gap-3 rounded-2xl bg-brand-500 px-4 py-3.5 text-white shadow-xl shadow-brand-500/30 md:hidden"
+        >
+          <ShoppingBag className="size-5" />
+          <span className="text-sm font-semibold">Ver carrito · {count}</span>
+          <span className="ml-auto text-base font-bold">{formatMoney(cartTicket.total)}</span>
+        </button>
+      )}
       <footer className="mx-auto max-w-6xl px-4 pb-8 text-center text-xs text-ink-soft">
         ¿Prefieres WhatsApp? Mándanos tu lista al{' '}
         <Link to="/whatsapp" className="font-medium text-emerald-700 underline">

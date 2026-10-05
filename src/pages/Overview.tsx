@@ -20,22 +20,28 @@ import { pctChange, periodRange, inRange } from '../utils/period'
 import { promoBadge, promoColor } from '../utils/promotions'
 import { stockStatus } from '../utils/stock'
 
+function ChangePill({ change, accent, className = '' }: { change: number; accent?: boolean; className?: string }) {
+  return (
+    <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${accent ? 'bg-white text-emerald-600' : change >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'} ${className}`}>
+      {change >= 0 ? '+' : ''}
+      {change.toFixed(0)}%
+    </span>
+  )
+}
+
 function Kpi({ icon: Icon, label, value, change, accent }: { icon: typeof Wallet; label: string; value: string; change?: number; accent?: boolean }) {
   return (
-    <div className={`card flex items-center gap-3 p-4 ${accent ? 'border-brand-500 bg-brand-500 text-white shadow-lg shadow-brand-500/20' : ''}`}>
-      <div className={`grid size-11 shrink-0 place-items-center rounded-xl ${accent ? 'bg-white text-brand-600' : 'border border-line bg-tile text-ink-soft'}`}>
+    <div className={`card flex items-center gap-3 p-3 sm:p-4 ${accent ? 'border-brand-500 bg-brand-500 text-white shadow-lg shadow-brand-500/20' : ''}`}>
+      <div className={`hidden size-11 shrink-0 place-items-center rounded-xl sm:grid ${accent ? 'bg-white text-brand-600' : 'border border-line bg-tile text-ink-soft'}`}>
         <Icon className="size-5" />
       </div>
-      <div className="min-w-0">
-        <p className={`text-xs ${accent ? 'text-white/85' : 'text-ink-soft'}`}>{label}</p>
-        <p className="truncate text-xl font-semibold">{value}</p>
+      <div className="min-w-0 flex-1">
+        <p className={`truncate text-[11px] sm:text-xs ${accent ? 'text-white/85' : 'text-ink-soft'}`}>{label}</p>
+        <p className="truncate text-lg font-semibold sm:text-xl">{value}</p>
+        {/* En teléfono la variación va debajo para no apretar el importe */}
+        {change != null && <ChangePill change={change} accent={accent} className="mt-1 inline-block sm:hidden" />}
       </div>
-      {change != null && (
-        <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${accent ? 'bg-white text-emerald-600' : change >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
-          {change >= 0 ? '+' : ''}
-          {change.toFixed(0)}%
-        </span>
-      )}
+      {change != null && <ChangePill change={change} accent={accent} className="hidden shrink-0 sm:inline-block" />}
     </div>
   )
 }
@@ -99,7 +105,7 @@ export default function Overview() {
         </Link>
       </section>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <Kpi accent icon={Wallet} label="Ventas de hoy" value={formatMoney(stats.revenue)} change={stats.revenueChange} />
         <Kpi icon={Receipt} label="Tickets" value={String(stats.tickets)} change={stats.ticketsChange} />
         <Kpi icon={ShoppingCart} label="Ticket promedio" value={formatMoney(stats.avg)} />

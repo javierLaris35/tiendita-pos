@@ -281,7 +281,7 @@ export default function Customers() {
     .sort((a, b) => (creditFilter === 'debt' ? b.balance - a.balance : b.total - a.total))
 
   return (
-    <div className="flex flex-col gap-3 xl:h-full">
+    <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <section className="card space-y-4 p-4">
           <PanelHeader title="Tasa de retención de clientes">

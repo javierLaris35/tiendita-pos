@@ -43,7 +43,7 @@ function ProductList({ onEdit, onOrder, selectedId, onAdd, onLabels }: ProductLi
   )
 
   return (
-    <section className="card relative flex min-h-[560px] flex-col gap-3 p-3 sm:p-4 xl:min-h-0">
+    <section className="card relative flex flex-col gap-3 p-3 sm:p-4">
       <PanelHeader icon={Box} title="Productos y existencias">
         <Dropdown value={filter} onChange={setFilter} options={FILTERS} />
         <KebabMenu
@@ -58,7 +58,7 @@ function ProductList({ onEdit, onOrder, selectedId, onAdd, onLabels }: ProductLi
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute" />
         <input className="input py-2 pl-9" placeholder="Buscar por nombre, marca o código…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
-      <div className="-mr-1 min-h-0 flex-1 space-y-2 overflow-y-auto pb-16 pr-1 scrollbar-thin">
+      <div className="space-y-2">
         {!list.length && <EmptyState icon={Box} title="Sin productos" message="Prueba con otro filtro o búsqueda." />}
         {list.map((p) => {
           const active = p.id === selectedId
@@ -66,23 +66,26 @@ function ProductList({ onEdit, onOrder, selectedId, onAdd, onLabels }: ProductLi
             <button
               key={p.id}
               onClick={() => onEdit(p)}
-              className={`row-card grid w-full grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_auto] items-center gap-3 p-2 text-left ${active ? 'row-card-active' : 'hover:border-brand-200'}`}
+              className={`row-card grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-2 text-left sm:grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_auto] ${active ? 'row-card-active' : 'hover:border-brand-200'}`}
             >
               <div className="flex min-w-0 items-center gap-2.5">
                 <ProductThumb product={p} />
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium">{p.name}</p>
                   <p className={`truncate text-[10px] ${active ? 'text-white/80' : 'text-brand-600'}`}>{catName(p.category)}</p>
+                  <p className={`text-[10px] sm:hidden ${active ? 'text-white/90' : 'text-ink-soft'}`}>
+                    {p.stock} disponibles · {timeAgo(p.lastRestocked)}
+                  </p>
                 </div>
               </div>
-              <KeyValue light={active} label="Disponible" value={p.stock} />
-              <KeyValue light={active} label="Último reabasto" value={timeAgo(p.lastRestocked)} />
+              <div className="hidden sm:block"><KeyValue light={active} label="Disponible" value={p.stock} /></div>
+              <div className="hidden sm:block"><KeyValue light={active} label="Último reabasto" value={timeAgo(p.lastRestocked)} /></div>
               <StockBadge product={p} className={active ? 'bg-white' : 'bg-transparent'} />
             </button>
           )
         })}
       </div>
-      <button onClick={() => onOrder(selectedId)} className="btn-primary absolute bottom-4 left-1/2 -translate-x-1/2 px-10 py-3 shadow-lg">
+      <button onClick={() => onOrder(selectedId)} className="btn-primary sticky bottom-4 z-10 mx-auto px-10 py-3 shadow-lg">
         <ClipboardList className="size-4" /> Ordenar stock
       </button>
     </section>
@@ -130,13 +133,13 @@ function SupplierOrders({ onNew }: { onNew: () => void }) {
             <div
               key={o.id}
               onClick={() => setSelected(o.id)}
-              className={`row-card grid cursor-pointer grid-cols-[repeat(4,minmax(0,1fr))_auto] items-center gap-2 p-2.5 sm:gap-3 ${active ? 'row-card-active' : 'hover:border-brand-200'}`}
+              className={`row-card grid cursor-pointer grid-cols-2 items-center gap-2 p-2.5 sm:grid-cols-[repeat(4,minmax(0,1fr))_auto] sm:gap-3 ${active ? 'row-card-active' : 'hover:border-brand-200'}`}
             >
               <KeyValue light={active} label="Orden" value={o.code} />
               <KeyValue light={active} label="Proveedor" value={o.supplier} />
               <KeyValue light={active} label="Artículos" value={`${o.qty} ${p?.name ?? '—'}`} />
               <KeyValue light={active} label="Entrega" value={formatDate(o.expected)} />
-              <div className="flex items-center gap-1">
+              <div className="col-span-2 flex items-center justify-end gap-1 sm:col-span-1">
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
@@ -188,16 +191,19 @@ function ExpiryWaste({ onAdd }: { onAdd: () => void }) {
           const expired = new Date(w.expiry) < new Date()
           const active = selected === w.id
           return (
-            <div key={w.id} onClick={() => setSelected(w.id)} className={`row-card grid cursor-pointer grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.9fr)_auto] items-center gap-3 p-2 ${active ? 'row-card-active' : 'hover:border-brand-200'}`}>
+            <div key={w.id} onClick={() => setSelected(w.id)} className={`row-card grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.9fr)_auto] ${active ? 'row-card-active' : 'hover:border-brand-200'}`}>
               <div className="flex min-w-0 items-center gap-2.5">
                 <ProductThumb product={p} />
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium">{p.name}</p>
                   <p className={`truncate text-[10px] ${active ? 'text-white/80' : 'text-brand-600'}`}>{catName(p.category)}</p>
+                  <p className={`text-[10px] sm:hidden ${expired && !active ? 'font-medium text-red-500' : active ? 'text-white/90' : 'text-ink-soft'}`}>
+                    {w.qty} pzas · {expired ? 'caducó' : 'caduca'} {formatDate(w.expiry)}
+                  </p>
                 </div>
               </div>
-              <KeyValue light={active} label="Cantidad" value={w.qty} />
-              <KeyValue light={active} label={expired ? 'Caducado' : 'Caduca'} value={formatDate(w.expiry)} valueClass={expired && !active ? '!text-red-500' : ''} />
+              <div className="hidden sm:block"><KeyValue light={active} label="Cantidad" value={w.qty} /></div>
+              <div className="hidden sm:block"><KeyValue light={active} label={expired ? 'Caducado' : 'Caduca'} value={formatDate(w.expiry)} valueClass={expired && !active ? '!text-red-500' : ''} /></div>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -224,7 +230,7 @@ export default function Inventory() {
   const [labels, setLabels] = useState(false)
 
   return (
-    <div className="grid grid-cols-1 gap-3 xl:h-full xl:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-2">
       <ProductList
         selectedId={selectedId}
         onEdit={(p) => {

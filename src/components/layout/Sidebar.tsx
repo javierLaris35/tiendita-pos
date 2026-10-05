@@ -180,7 +180,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className={`card hidden shrink-0 transition-all duration-200 lg:block ${collapsed ? 'w-[76px]' : 'w-[218px]'}`}>
+      <aside className={`card sticky top-3 hidden h-[calc(100dvh-1.5rem)] shrink-0 self-start overflow-hidden transition-all duration-200 lg:block ${collapsed ? 'w-[76px]' : 'w-[218px]'}`}>
         <SidebarContent collapsed={collapsed} onToggle={toggle} />
       </aside>
       {mobileOpen && (

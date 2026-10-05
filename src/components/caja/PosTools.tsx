@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { ShoppingBag, Barcode, CalendarClock, PackageSearch, Plus, Receipt, ScanSearch, Search, ShieldCheck, UserPlus, UsersRound } from 'lucide-react'
+import { ScanLine, ShoppingBag, Barcode, CalendarClock, PackageSearch, Plus, Receipt, ScanSearch, Search, ShieldCheck, UserPlus, UsersRound } from 'lucide-react'
 import Modal from '../ui/Modal'
 import Avatar from '../ui/Avatar'
 import { CategoryIcon, EmptyState, Toggle } from '../ui/Misc'
@@ -15,6 +15,7 @@ import { useCurrentUser } from '../../store/useAuthStore'
 import { useUiStore, toast } from '../../store/useUiStore'
 import { useOrderStore } from '../../store/useOrderStore'
 import { ChannelBadge, StatusPill } from '../orders/OrderParts'
+import { CameraScanner } from '../qr/Qr'
 import { useCustomerStats } from '../../hooks'
 import { promoBadge, promoColor, promoDescription, promoProductIds } from '../../utils/promotions'
 import { STOCK_STATUS, stockStatus } from '../../utils/stock'
@@ -369,22 +370,28 @@ export function PosOrdersModal({ onLoad, onClose }: { onLoad: (code: string) => 
   const orders = useOrderStore((s) => s.orders)
   const branchId = useBranchStore((s) => s.activeBranchId)
   const [q, setQ] = useState('')
+  const [camera, setCamera] = useState(false)
   const list = orders
     .filter((o) => o.branchId === branchId && o.fulfillment !== 'delivery' && ['ready', 'awaiting_payment', 'preparing', 'confirmed', 'received'].includes(o.status))
     .filter((o) => !q.trim() || `${o.code} ${o.customerName}`.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => Number(['ready', 'awaiting_payment'].includes(b.status)) - Number(['ready', 'awaiting_payment'].includes(a.status)) || a.createdAt.localeCompare(b.createdAt))
 
   return (
-    <Modal open onClose={onClose} icon={ShoppingBag} title="Pedidos para cobrar o entregar" subtitle="También puedes escanear el QR del cliente en el buscador" width="max-w-2xl">
+    <Modal open onClose={onClose} icon={ShoppingBag} title="Pedidos para cobrar o entregar" subtitle="Escanea el QR del cliente o búscalo por código" width="max-w-2xl">
       <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute" />
-          <input autoFocus className="input py-2.5 pl-9" placeholder="Código (P-2004) o cliente…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute" />
+            <input autoFocus className="input py-2.5 pl-9" placeholder="Código (P-2004) o cliente…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          <button onClick={() => setCamera((c) => !c)} className={camera ? 'btn-primary px-3' : 'btn-ghost px-3'} title="Escanear con la cámara">
+            <ScanLine className="size-4" /> <span className="hidden sm:inline">Cámara</span>
+          </button>
         </div>
+        {camera && <CameraScanner onResult={(text) => onLoad(text)} />}
         {!list.length && <EmptyState icon={ShoppingBag} title="Sin pedidos pendientes en esta sucursal" />}
         <div className="max-h-[440px] space-y-2 overflow-y-auto pr-1 scrollbar-thin">
           {list.map((o) => {
-            const ready = ['ready', 'awaiting_payment'].includes(o.status)
             return (
               <div key={o.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-line p-3">
                 <span className="whitespace-nowrap font-mono text-sm font-bold">{o.code}</span>
@@ -393,8 +400,6 @@ export function PosOrdersModal({ onLoad, onClose }: { onLoad: (code: string) => 
                 <StatusPill status={o.status} />
                 <span className="text-sm font-semibold">{formatMoney(o.total)}</span>
                 <button
-                  disabled={!ready}
-                  title={ready ? undefined : 'Aún se está armando'}
                   onClick={() => onLoad(o.code)}
                   className={`btn px-3 py-1.5 text-xs ${o.paid ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-brand-500 text-white hover:bg-brand-600'}`}
                 >
@@ -404,40 +409,6 @@ export function PosOrdersModal({ onLoad, onClose }: { onLoad: (code: string) => 
             )
           })}
         </div>
-      </div>
-    </Modal>
-  )
-}
-
-/** Pedido ya pagado en línea: solo se entrega (se verifica con el código del cliente). */
-export function DeliverOrderModal({ orderId, onDone, onClose }: { orderId: string; onDone: () => void; onClose: () => void }) {
-  const order = useOrderStore((s) => s.orders.find((o) => o.id === orderId))
-  if (!order) return null
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      icon={ShoppingBag}
-      title={`Pedido ${order.code} · pagado`}
-      subtitle={`${order.customerName} · ${formatMoney(order.total)}`}
-      width="max-w-md"
-      footer={
-        <>
-          <button className="btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn-primary" onClick={onDone}>Entregar al cliente</button>
-        </>
-      }
-    >
-      <p className="mb-3 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800">Este pedido ya se pagó en línea. Revisa que la bolsa coincida y entrégalo; no se cobra nada en caja.</p>
-      <div className="space-y-1.5">
-        {order.items.map((i) => (
-          <div key={i.productId} className="flex justify-between rounded-lg bg-tile px-3 py-2 text-sm">
-            <span>
-              {i.emoji} {i.name}
-            </span>
-            <b>{i.unit === 'kg' ? formatQty(i.qty, 'kg') : `×${i.qty}`}</b>
-          </div>
-        ))}
       </div>
     </Modal>
   )

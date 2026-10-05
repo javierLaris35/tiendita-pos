@@ -12,14 +12,16 @@ import { nextSaleNumber } from '../../store/useSalesStore'
 import { formatMoney, formatQty } from '../../utils/format'
 import type { PaymentMethod } from '../../types'
 
-interface PosTicketProps {
+export interface PosTicketProps {
   onPay: (m: PaymentMethod) => void
   onEditWeight: (line: CartLine) => void
   onCustomer: () => void
   onParked: () => void
+  /** Clases del contenedor (la hoja de teléfono lo hace ocupar todo el alto) */
+  className?: string
 }
 
-export default function PosTicket({ onPay, onEditWeight, onCustomer, onParked }: PosTicketProps) {
+export default function PosTicket({ onPay, onEditWeight, onCustomer, onParked, className = 'min-h-[560px] md:min-h-0' }: PosTicketProps) {
   const { lines, ticket } = useTicket()
   const { inc, dec, remove, clear, add, park, customerId, setCustomer, parked } = useCartStore()
   const customer = useCustomerStats().find((c) => c.id === customerId)
@@ -30,7 +32,7 @@ export default function PosTicket({ onPay, onEditWeight, onCustomer, onParked }:
   const empty = lines.length === 0
 
   return (
-    <section className="card flex min-h-[560px] flex-col overflow-hidden lg:min-h-0">
+    <section className={`card flex flex-col overflow-hidden ${className}`}>
       <div className="flex items-center gap-2 border-b border-line px-4 py-3">
         <Receipt className="size-5 text-brand-500" />
         <div className="flex-1">

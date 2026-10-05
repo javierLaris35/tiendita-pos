@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckCheck, Info, MessageCircle, Send, Smartphone } from 'lucide-react'
 import { Logo } from '../components/ui/Misc'
+import OrderPass from '../components/orders/OrderPass'
 import { useOrderStore, phoneKey } from '../store/useOrderStore'
 import { useCustomerStore } from '../store/useCustomerStore'
 import { useSettingsStore } from '../store/useSettingsStore'
@@ -32,6 +33,17 @@ function Rich({ text }: { text: string }) {
   return <>{parts}</>
 }
 
+/** Pase de recolección adjunto en el chat; refleja el estado actual del pedido (pagado, listo…). */
+function ChatPass({ orderId }: { orderId: string }) {
+  const order = useOrderStore((s) => s.orders.find((o) => o.id === orderId))
+  if (!order) return null
+  return (
+    <div className="mt-2 whitespace-normal">
+      <OrderPass order={order} compact />
+    </div>
+  )
+}
+
 export default function WhatsAppSim() {
   const [params] = useSearchParams()
   const customers = useCustomerStore((s) => s.customers)
@@ -41,13 +53,14 @@ export default function WhatsAppSim() {
   const [phone, setPhone] = useState(params.get('tel') ?? '+52 55 1333 2221')
   const [text, setText] = useState('')
   const [typing, setTyping] = useState(false)
-  const endRef = useRef<HTMLDivElement>(null)
+  const chatRef = useRef<HTMLDivElement>(null)
   const thread = threads[phoneKey(phone)]
   const customer = customers.find((c) => phoneKey(c.phone) === phoneKey(phone))
   const messages = useMemo(() => thread?.messages ?? [], [thread])
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Solo se desplaza el chat, nunca la página completa
+    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages.length, typing])
 
   const send = (body = text) => {
@@ -59,7 +72,7 @@ export default function WhatsAppSim() {
     // Respuestas con un pequeño retraso, como un chat real
     replies.forEach((r, i) => {
       setTimeout(() => {
-        pushChat(phone, [{ from: 'bot', text: r }])
+        pushChat(phone, [typeof r === 'string' ? { from: 'bot', text: r } : { from: 'bot', text: r.text, orderPass: r.orderPass }])
         if (i === replies.length - 1) setTyping(false)
       }, 700 + i * 650)
     })
@@ -71,7 +84,7 @@ export default function WhatsAppSim() {
   return (
     <div className="min-h-full bg-canvas p-3 sm:p-6">
       <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <section className="space-y-4">
+        <section className="order-last space-y-4 lg:order-none">
           <Link to="/pedidos" className="inline-flex items-center gap-1 text-xs text-ink-soft hover:text-ink">
             <ArrowLeft className="size-3.5" /> Volver a pedidos
           </Link>
@@ -118,7 +131,7 @@ export default function WhatsAppSim() {
           </div>
         </section>
 
-        <section className="mx-auto flex h-[78vh] max-h-[760px] w-full max-w-[400px] flex-col overflow-hidden rounded-[2.5rem] border-[10px] border-ink bg-[#efeae2] shadow-2xl">
+        <section className="mx-auto flex h-[calc(100dvh-1.5rem)] w-full max-w-[400px] flex-col overflow-hidden rounded-2xl bg-[#efeae2] shadow-xl sm:h-[78vh] sm:max-h-[760px] sm:rounded-[2.5rem] sm:border-[10px] sm:border-ink sm:shadow-2xl">
           <header className="flex items-center gap-3 bg-[#075e54] px-4 py-3 text-white">
             <span className="grid size-10 place-items-center rounded-full bg-white text-xl">🛒</span>
             <div className="min-w-0 flex-1">
@@ -127,12 +140,13 @@ export default function WhatsAppSim() {
             </div>
             <MessageCircle className="size-5" />
           </header>
-          <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3" style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px)', backgroundSize: '14px 14px' }}>
+          <div ref={chatRef} className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3" style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px)', backgroundSize: '14px 14px' }}>
             {!messages.length && <p className="mx-auto mt-6 max-w-[80%] rounded-lg bg-[#fff5c4] px-3 py-2 text-center text-[11px] text-ink-soft">Escribe “Hola” o manda tu lista de compras para empezar.</p>}
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.from === 'customer' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-2.5 py-1.5 text-[13px] leading-snug shadow-sm ${m.from === 'customer' ? 'rounded-tr-none bg-[#d9fdd3]' : 'rounded-tl-none bg-white'}`}>
                   <Rich text={m.text} />
+                  {m.orderPass && <ChatPass orderId={m.orderPass} />}
                   <span className="float-right ml-2 mt-1 flex items-center gap-0.5 text-[9px] text-ink-mute">
                     {formatTime(m.date)}
                     {m.from === 'customer' && <CheckCheck className="size-3 text-sky-500" />}
@@ -145,7 +159,6 @@ export default function WhatsAppSim() {
                 <span className="rounded-lg rounded-tl-none bg-white px-3 py-2 text-ink-mute shadow-sm">•••</span>
               </div>
             )}
-            <div ref={endRef} />
           </div>
           <form
             onSubmit={(e) => {

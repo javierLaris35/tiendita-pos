@@ -114,14 +114,17 @@ function branchList() {
  * Procesa un mensaje entrante del cliente. Guarda el mensaje y el nuevo estado de la conversación
  * y devuelve las respuestas del bot (la UI las muestra con un pequeño retraso de "escribiendo…").
  */
-export function handleWhatsAppMessage(phone: string, text: string): string[] {
+/** Respuesta del bot: texto, o texto con el pase de recolección adjunto. */
+export type BotReply = string | { text: string; orderPass: string }
+
+export function handleWhatsAppMessage(phone: string, text: string): BotReply[] {
   const store = useOrderStore.getState()
   const key = phoneKey(phone)
   const customers = useCustomerStore.getState().customers
   const known = customers.find((c) => samePhone(c.phone, key))
   const t: WaThread = store.threads[key] ?? emptyThread(key, known?.id ?? null)
   store.pushChat(key, [{ from: 'customer', text }])
-  const say = (patch: Partial<WaThread>, replies: string[]) => {
+  const say = (patch: Partial<WaThread>, replies: BotReply[]) => {
     // El historial lo administra pushChat; el estado de la conversación nunca debe sobrescribirlo
     const { messages: _ignored, ...state } = patch
     store.setThread(key, { ...state, customerId: patch.customerId ?? t.customerId ?? known?.id ?? null })
@@ -215,6 +218,9 @@ export function handleWhatsAppMessage(phone: string, text: string): string[] {
       const link = `${window.location.origin}/tienda/pedido/${o.code}`
       return say({ stage: 'done', items: [], pending: [], notFound: [], orderId: o.id }, [
         `✅ ¡Listo! Tu pedido *${o.code}* quedó registrado por *${formatMoney(o.total)}*${o.deliveryFee ? ` (incluye envío ${formatMoney(o.deliveryFee)})` : ''}.`,
+        ...(o.fulfillment === 'pickup'
+          ? [{ text: `🧾 Este es tu pase para recoger en tienda. Muéstralo en caja: ahí escanean el QR y ${c === 2 ? 'te entregan tu pedido (ya pagado)' : 'te cobran y entregan'}.`, orderPass: o.id }]
+          : []),
         c === 2 ? `💳 Paga aquí en línea: ${link}` : `Puedes seguirlo aquí: ${link}`,
         'Te aviso por este chat cada vez que cambie de estatus 📲',
       ])

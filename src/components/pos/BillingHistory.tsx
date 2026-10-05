@@ -35,7 +35,7 @@ export default function BillingHistory() {
           const units = sale.items.reduce((a, i) => a + (Number.isInteger(i.qty) ? i.qty : 1), 0) // granel cuenta como 1 artículo
           return (
             <div key={sale.id} className={`row-card ${open ? 'row-card-active shadow-md shadow-brand-500/20' : 'hover:border-brand-200'}`}>
-              <button onClick={() => setExpanded(open ? null : sale.id)} className="grid w-full grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,1fr)_auto] items-center gap-3 p-2.5 text-left">
+              <button onClick={() => setExpanded(open ? null : sale.id)} className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 p-2.5 text-left sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,1fr)_auto]">
                 <div className="flex min-w-0 items-center gap-3">
                   {c ? (
                     <Avatar src={c.avatar} name={c.name} />
@@ -51,7 +51,7 @@ export default function BillingHistory() {
                     </p>
                   </div>
                 </div>
-                <KeyValue light={open} label="Artículos" value={units} />
+                <div className="hidden sm:block"><KeyValue light={open} label="Artículos" value={units} /></div>
                 <KeyValue light={open} label="Total" value={formatMoney(sale.total)} />
                 <span className={`grid size-8 place-items-center rounded-full ${open ? 'bg-white/20' : 'bg-canvas'}`}>
                   <ChevronDown className={`size-4 transition ${open ? 'rotate-180' : ''}`} />

@@ -46,7 +46,8 @@ Los tres canales generan el mismo tipo de **pedido** (`P-2001`): canal, entrega 
 | `/pedidos` | Personal | Tablero por estatus (nuevos, confirmados, armando, listos/por cobrar, en camino, cerrados) con lista de surtido, avisos y cobro |
 
 - **Inventario apartado**: cada pedido activo aparta su mercancía; tienda, WhatsApp, Escanea y paga y la caja física venden solo lo disponible (existencia − apartado). Al cancelar se libera.
-- **En caja**: escanear el QR del cliente (o `F12 · Pedidos`) carga el pedido en el ticket para cobrarlo, o lo marca entregado si ya se pagó en línea.
+- **Pase de recolección** (pedidos para recoger): QR + código, sucursal, productos, total y si ya está pagado. Se envía al WhatsApp del cliente al hacer el pedido (web o WhatsApp) y otra vez cuando está listo; se ve en su seguimiento y se puede guardar como imagen. El QR es la liga del seguimiento.
+- **En tienda**: al leer el QR (lector, cámara o `F12 · Pedidos` en caja; botón *Escanear QR* en Pedidos) aparece la orden con el pago en grande: **PAGADO** → *Entregar*; **POR COBRAR** → *Cobrar* abre el cobro con el pedido cargado. Avisa si aún no está listo, si es de otra sucursal o si ya se entregó.
 - **QR de producto**: en Inventario cada producto tiene su QR (`/scan?p=<código>`) y hay hoja de **etiquetas de anaquel** para imprimir.
 - **Sincronización entre pestañas**: cliente y personal pueden estar en pestañas distintas; los cambios se reflejan al instante (en producción: backend con websockets).
 - Cuenta demo de cliente: `juan.perez@correo.mx` / `cliente123`.

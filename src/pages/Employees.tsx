@@ -102,7 +102,7 @@ export default function Employees() {
   ]
 
   return (
-    <div className="flex flex-col gap-3 xl:h-full">
+    <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {stats.map(({ icon: Icon, label, value }, i) => (
           <div key={label} className={`card flex items-center gap-3 p-4 ${i === 0 ? 'border-brand-500 bg-brand-500 text-white' : ''}`}>

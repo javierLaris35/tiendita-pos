@@ -61,7 +61,7 @@ interface KpiCardProps {
 
 function KpiCard({ icon: Icon, title, value, change, active = false, control }: KpiCardProps) {
   return (
-    <div className={`card flex flex-col justify-between gap-4 p-4 ${active ? 'border-brand-500 bg-brand-500 text-white shadow-lg shadow-brand-500/25' : ''}`}>
+    <div className={`card flex flex-col justify-between gap-3 p-3 sm:gap-4 sm:p-4 ${active ? 'border-brand-500 bg-brand-500 text-white shadow-lg shadow-brand-500/25' : ''}`}>
       <div className="flex items-start justify-between gap-2">
         <div className={`grid size-10 place-items-center rounded-xl ${active ? 'bg-white text-brand-600' : 'border border-line bg-tile text-ink-soft'}`}>
           <Icon className="size-5" />
@@ -71,7 +71,7 @@ function KpiCard({ icon: Icon, title, value, change, active = false, control }: 
       <div>
         <p className={`text-sm sm:text-base ${active ? 'text-white' : 'text-ink'}`}>{title}</p>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xl font-semibold sm:text-2xl">{value}</p>
+          <p className="truncate text-lg font-semibold sm:text-2xl">{value}</p>
           {change != null && <ChangeBadge value={change} light={active} />}
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function Analysis() {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <KpiCard
           active
           icon={Wallet}
@@ -204,7 +204,7 @@ export default function Analysis() {
             {topProducts.map(({ product, units, revenue: rev, change }, i) => {
               const active = i === 0
               return (
-                <div key={product.id} className={`row-card grid grid-cols-[minmax(0,1.6fr)_repeat(2,minmax(0,0.8fr))_auto_auto] items-center gap-3 p-2 ${active ? 'row-card-active' : ''}`}>
+                <div key={product.id} className={`row-card grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 p-2 sm:grid-cols-[minmax(0,1.6fr)_repeat(2,minmax(0,0.8fr))_auto_auto] ${active ? 'row-card-active' : ''}`}>
                   <div className="flex min-w-0 items-center gap-2.5">
                     <ProductThumb product={product} />
                     <div className="min-w-0">
@@ -212,7 +212,7 @@ export default function Analysis() {
                       <p className={`text-[10px] ${active ? 'text-white/80' : 'text-ink-soft'}`}>{CATEGORIES.find((c) => c.id === product.category)?.name}</p>
                     </div>
                   </div>
-                  <KeyValue light={active} label="Unidades" value={`${units} u`} />
+                  <div className="hidden sm:block"><KeyValue light={active} label="Unidades" value={`${units} u`} /></div>
                   <KeyValue light={active} label="Ingresos" value={formatMoney(rev)} />
                   <StockBadge product={product} className="hidden bg-white sm:inline-flex" />
                   <ChangeBadge value={change} light={active} />
@@ -253,7 +253,7 @@ export default function Analysis() {
               const h = Math.floor(e.hoursToday)
               const m = Math.round((e.hoursToday - h) * 60)
               return (
-                <div key={e.id} className={`row-card grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto_auto] items-center gap-3 p-2 ${active ? 'row-card-active' : ''}`}>
+                <div key={e.id} className={`row-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto_auto] ${active ? 'row-card-active' : ''}`}>
                   <div className="flex min-w-0 items-center gap-2.5">
                     <Avatar src={e.avatar} name={e.name} />
                     <div className="min-w-0">
@@ -261,7 +261,7 @@ export default function Analysis() {
                       <p className={`text-[10px] ${active ? 'text-white/80' : 'text-ink-soft'}`}>{e.counter}</p>
                     </div>
                   </div>
-                  <KeyValue light={active} label="Horas trabajadas" value={`${h}h ${String(m).padStart(2, '0')}m`} />
+                  <div className="hidden sm:block"><KeyValue light={active} label="Horas trabajadas" value={`${h}h ${String(m).padStart(2, '0')}m`} /></div>
                   <StatusDot dot={st.dot} label={st.label} className="hidden border border-line bg-white text-ink sm:inline-flex" />
                   <button
                     onClick={() => toast({ type: 'info', title: `Llamando a ${e.name}…`, message: e.phone })}

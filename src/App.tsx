@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import Toaster from './components/ui/Toaster'
@@ -10,12 +10,35 @@ import Promotions from './pages/Promotions'
 import PromoDisplay from './pages/PromoDisplay'
 import CashSessions from './pages/CashSessions'
 import Orders from './pages/Orders'
+/**
+ * Carga diferida tolerante a despliegues: si se publicó una versión nueva mientras la página estaba
+ * abierta, los archivos viejos ya no existen; se recarga una sola vez para traer la versión actual.
+ */
+function lazyPage<T extends ComponentType>(load: () => Promise<{ default: T }>) {
+  return lazy(() =>
+    load()
+      .then((mod) => {
+        // Cargó bien: si en el futuro vuelve a fallar, se permite otra recarga
+        sessionStorage.removeItem('tiendita-reloaded')
+        return mod
+      })
+      .catch((err) => {
+      if (!sessionStorage.getItem('tiendita-reloaded')) {
+        sessionStorage.setItem('tiendita-reloaded', '1')
+        window.location.reload()
+        return new Promise<never>(() => {})
+      }
+      throw err
+    }),
+  )
+}
+
 // Pantallas públicas: se cargan aparte para que el cliente no descargue el panel completo
-const Shop = lazy(() => import('./pages/shop/Shop'))
-const ShopAccount = lazy(() => import('./pages/shop/ShopAccount'))
-const OrderTrack = lazy(() => import('./pages/shop/OrderTrack'))
-const SelfScan = lazy(() => import('./pages/SelfScan'))
-const WhatsAppSim = lazy(() => import('./pages/WhatsAppSim'))
+const Shop = lazyPage(() => import('./pages/shop/Shop'))
+const ShopAccount = lazyPage(() => import('./pages/shop/ShopAccount'))
+const OrderTrack = lazyPage(() => import('./pages/shop/OrderTrack'))
+const SelfScan = lazyPage(() => import('./pages/SelfScan'))
+const WhatsAppSim = lazyPage(() => import('./pages/WhatsAppSim'))
 import Analysis from './pages/Analysis'
 import Inventory from './pages/Inventory'
 import Customers from './pages/Customers'

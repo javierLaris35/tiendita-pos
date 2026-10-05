@@ -45,7 +45,7 @@ function GlobalSearch() {
   }
 
   return (
-    <div ref={ref} className="relative min-w-0 flex-1">
+    <div ref={ref} className="relative order-last min-w-0 basis-full sm:order-none sm:basis-auto sm:flex-1">
       <div className="card flex h-full items-center gap-3 px-4 py-3">
         <Search className="size-[18px] shrink-0 text-ink-soft" />
         <input
@@ -210,10 +210,12 @@ export default function Topbar() {
   const session = useMySession()
 
   return (
-    <header className="flex items-stretch gap-2 sm:gap-3">
+    <header className="flex flex-wrap items-stretch gap-2 sm:flex-nowrap sm:gap-3">
       <button onClick={() => setMobileNav(true)} className="card grid w-[50px] shrink-0 place-items-center lg:hidden" aria-label="Abrir menú">
         <Menu className="size-5" />
       </button>
+      {/* En teléfono el buscador baja a su propio renglón; este espacio empuja los botones a la derecha */}
+      <div className="flex-1 sm:hidden" />
       <GlobalSearch />
       <Link to="/caja" className="flex shrink-0 items-center gap-2 rounded-2xl bg-brand-500 px-3 text-sm text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 sm:px-5">
         <MonitorCheck className="size-5" />

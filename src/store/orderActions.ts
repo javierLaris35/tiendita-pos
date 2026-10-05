@@ -13,7 +13,7 @@ import { availableNow } from './useShopperStore'
 import { notify } from './useUiStore'
 import { computeTicket, isPromoActive } from '../utils/promotions'
 import { customerMessage, isActive, parseOrderCode } from '../utils/orders'
-import { uid } from '../utils/format'
+import { formatMoney, uid } from '../utils/format'
 import type { Fulfillment, Order, OrderChannel, OrderItem, PaymentMethod, PedidoStatus, Sale } from '../types'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -99,9 +99,27 @@ export function placeOrder(input: PlaceOrderInput): PlaceOrderResult {
     useOrderStore.getState().updateOrder(order.id, (o) => ({ ...o, saleId: sale.id }))
     order.saleId = sale.id
   } else {
+    // Pedidos web para recoger: se le manda su pase al WhatsApp del cliente
+    if (order.channel === 'web' && order.fulfillment === 'pickup') {
+      notifyCustomer(order, `Hola ${customer.name.split(' ')[0]} 👋 Recibimos tu pedido *${order.code}* de la tienda en línea por *${formatMoney(order.total)}*. Este es tu pase para recogerlo en ${branchName(order.branchId)}:`, true)
+    } else if (order.channel === 'web') {
+      notifyCustomer(order, `Hola ${customer.name.split(' ')[0]} 👋 Recibimos tu pedido *${order.code}* de la tienda en línea por *${formatMoney(order.total)}*. Te avisaremos por aquí cada cambio.`)
+    }
     notify({ type: 'info', title: `Nuevo pedido ${order.code}`, message: `${customer.name} · ${input.channel === 'whatsapp' ? 'WhatsApp' : input.channel === 'scan' ? 'Escanea y paga' : 'Tienda en línea'}` })
   }
   return { ok: true, order }
+}
+
+/**
+ * Avisa al cliente por WhatsApp (pedidos web y de WhatsApp). Con `withPass` adjunta el pase con el QR.
+ * En el demo los mensajes llegan al simulador; en producción saldrían por la API de WhatsApp Business.
+ */
+function notifyCustomer(order: Order, text: string, withPass = false) {
+  if (order.channel === 'scan') return
+  const store = useOrderStore.getState()
+  store.pushChat(order.phone, [{ from: 'bot', text, ...(withPass ? { orderPass: order.id } : {}) }])
+  const key = order.phone.replace(/\D/g, '').slice(-10)
+  if (!store.threads[key]?.customerId) store.setThread(order.phone, { customerId: order.customerId })
 }
 
 /** Convierte un pedido entregado/pagado en venta y descuenta inventario. */
@@ -156,7 +174,7 @@ export function setOrderStatus(orderId: string, status: PedidoStatus, opts: Stat
     saleId,
     timeline: [...o.timeline, { status, date: new Date().toISOString(), message, by: useAuthStore.getState().userId, note: opts.note }],
   }))
-  if (order.channel === 'whatsapp') store.pushChat(order.phone, [{ from: 'bot', text: message }])
+  notifyCustomer({ ...order, status }, message, status === 'ready' && order.fulfillment === 'pickup')
 }
 
 export function togglePicked(orderId: string, productId: string) {
@@ -170,7 +188,7 @@ export function payOrderOnline(orderId: string) {
   if (!order || order.paid) return
   const message = `Recibimos tu pago en línea de ${order.code}. ¡Gracias!`
   store.updateOrder(orderId, (o) => ({ ...o, paid: true, paymentMode: 'online', timeline: [...o.timeline, { status: o.status, date: new Date().toISOString(), message, by: null, note: 'Pago en línea' }] }))
-  if (order.channel === 'whatsapp') store.pushChat(order.phone, [{ from: 'bot', text: `💳 ${message}` }])
+  notifyCustomer(order, `💳 ${message}`)
 }
 
 // ---------- Caja: cobrar o entregar pedidos con su código / QR
@@ -217,5 +235,5 @@ export function closeOrderWithSale(orderId: string, sale: Sale) {
     total: sale.total,
     timeline: [...o.timeline, { status, date: sale.date, message, by: sale.cashierId, note: `Cobrado en caja · ticket #${sale.number}` }],
   }))
-  if (order.channel === 'whatsapp') store.pushChat(order.phone, [{ from: 'bot', text: message }])
+  notifyCustomer(order, message)
 }
