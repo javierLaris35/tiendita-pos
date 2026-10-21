@@ -1,5 +1,7 @@
-import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import Setup from './pages/Setup'
+import { getSetupStatus } from './api'
 import AppLayout from './components/layout/AppLayout'
 import Toaster from './components/ui/Toaster'
 import { useCurrentUser } from './store/useAuthStore'
@@ -55,11 +57,31 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return user ? children : <Navigate to="/login" replace />
 }
 
+/**
+ * Primer arranque: si el backend reporta que falta la configuración inicial,
+ * lleva a `/setup`. Si no hay backend (demo), no bloquea nada.
+ */
+function SetupGate() {
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null)
+  const location = useLocation()
+  useEffect(() => {
+    getSetupStatus()
+      .then((s) => setNeedsSetup(!s.complete))
+      .catch(() => setNeedsSetup(false))
+  }, [])
+  if (needsSetup && location.pathname !== '/setup') {
+    return <Navigate to="/setup" replace />
+  }
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <SetupGate />
       <Suspense fallback={<div className="grid h-full place-items-center text-sm text-ink-soft">Cargando…</div>}>
       <Routes>
+        <Route path="/setup" element={<Setup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/caja" element={<RequireAuth><Pos /></RequireAuth>} />
         {/* Públicas: clientes */}
