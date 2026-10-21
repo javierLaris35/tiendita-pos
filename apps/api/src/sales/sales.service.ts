@@ -78,7 +78,7 @@ export class SalesService {
         }
       }
 
-      return tx.sale.create({
+      const sale = await tx.sale.create({
         data: {
           cashierId,
           subtotal: totals.subtotal,
@@ -106,6 +106,22 @@ export class SalesService {
         },
         include: { items: true, payments: true },
       })
+
+      for (const { needed, product } of neededByProduct.values()) {
+        const after = await tx.product.findUniqueOrThrow({ where: { id: product.id } })
+        await tx.inventoryMovement.create({
+          data: {
+            productId: product.id,
+            reason: 'sale',
+            quantity: -needed,
+            stockAfter: after.stock,
+            userId: cashierId,
+            saleId: sale.id,
+          },
+        })
+      }
+
+      return sale
     })
   }
 
@@ -126,9 +142,18 @@ export class SalesService {
       const marked = await tx.sale.updateMany({ where: { id, status: 'completed' }, data: { status: 'returned' } })
       if (marked.count !== 1) throw new ConflictException(`La venta ${id} ya fue devuelta`)
 
+      const returnedByProduct = new Map<number, number>()
       for (const item of sale.items) {
         await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
         await tx.saleItem.update({ where: { id: item.id }, data: { returnedQty: item.quantity } })
+        returnedByProduct.set(item.productId, (returnedByProduct.get(item.productId) ?? 0) + Number(item.quantity))
+      }
+
+      for (const [productId, qty] of returnedByProduct) {
+        const after = await tx.product.findUniqueOrThrow({ where: { id: productId } })
+        await tx.inventoryMovement.create({
+          data: { productId, reason: 'return', quantity: qty, stockAfter: after.stock, saleId: id },
+        })
       }
 
       return tx.sale.findUniqueOrThrow({
