@@ -1,9 +1,20 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
 import { CashMovement, CashSession, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { round2 } from '../sales/sale-math'
 import { countCash } from './cash-count'
 import { CloseDto, MovementDto, OpenDto } from './dto/cash.dto'
+
+export interface Actor {
+  userId: number
+  role: string
+}
 
 export interface CutResult {
   openingAmount: number
@@ -17,18 +28,44 @@ export interface CutResult {
 export class CashService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Un cajero solo opera su propia caja; admin/manager pueden cualquier turno. */
+  private assertOwnership(session: CashSession, actor: Actor): void {
+    if (actor.role === 'cashier' && session.cashierId !== actor.userId) {
+      throw new ForbiddenException('Ese turno es de otro cajero')
+    }
+  }
+
+  private validateBreakdown(breakdown: Record<string, number>): void {
+    for (const [denom, count] of Object.entries(breakdown)) {
+      const d = Number(denom)
+      if (!Number.isFinite(d) || d <= 0) throw new BadRequestException(`Denominación inválida: ${denom}`)
+      if (!Number.isInteger(count) || count < 0) {
+        throw new BadRequestException(`Cantidad inválida para la denominación ${denom}`)
+      }
+    }
+  }
+
   async open(cashierId: number, dto: OpenDto): Promise<CashSession> {
     const existing = await this.prisma.cashSession.findFirst({ where: { cashierId, status: 'open' } })
     if (existing) throw new ConflictException('Ya tienes un turno abierto')
-    return this.prisma.cashSession.create({ data: { cashierId, openingAmount: dto.openingAmount } })
+    try {
+      return await this.prisma.cashSession.create({ data: { cashierId, openingAmount: dto.openingAmount } })
+    } catch (e) {
+      // Índice único parcial: dos aperturas concurrentes del mismo cajero → 409.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException('Ya tienes un turno abierto')
+      }
+      throw e
+    }
   }
 
-  async movement(userId: number, sessionId: number, dto: MovementDto): Promise<CashMovement> {
+  async movement(actor: Actor, sessionId: number, dto: MovementDto): Promise<CashMovement> {
     const session = await this.prisma.cashSession.findUnique({ where: { id: sessionId } })
     if (!session) throw new NotFoundException(`No existe el turno ${sessionId}`)
+    this.assertOwnership(session, actor)
     if (session.status === 'closed') throw new ConflictException(`El turno ${sessionId} está cerrado`)
     return this.prisma.cashMovement.create({
-      data: { sessionId, type: dto.type, amount: dto.amount, reason: dto.reason, userId },
+      data: { sessionId, type: dto.type, amount: dto.amount, reason: dto.reason, userId: actor.userId },
     })
   }
 
@@ -59,27 +96,29 @@ export class CashService {
     }
   }
 
-  async cutX(sessionId: number): Promise<CutResult> {
+  async cutX(sessionId: number, actor: Actor): Promise<CutResult> {
     const session = await this.prisma.cashSession.findUnique({ where: { id: sessionId } })
     if (!session) throw new NotFoundException(`No existe el turno ${sessionId}`)
+    this.assertOwnership(session, actor)
     return this.computeExpected(this.prisma, session)
   }
 
   /** Corte Z: cierra el turno (atómico por estado) y congela esperado/contado/diferencia. */
-  async close(sessionId: number, dto: CloseDto): Promise<CashSession> {
+  async close(sessionId: number, dto: CloseDto, actor: Actor): Promise<CashSession> {
+    this.validateBreakdown(dto.countedBreakdown)
     return this.prisma.$transaction(async (tx) => {
+      const session = await tx.cashSession.findUnique({ where: { id: sessionId } })
+      if (!session) throw new NotFoundException(`No existe el turno ${sessionId}`)
+      this.assertOwnership(session, actor)
+
       const marked = await tx.cashSession.updateMany({
         where: { id: sessionId, status: 'open' },
         data: { status: 'closed' },
       })
-      if (marked.count !== 1) {
-        const exists = await tx.cashSession.findUnique({ where: { id: sessionId } })
-        if (!exists) throw new NotFoundException(`No existe el turno ${sessionId}`)
-        throw new ConflictException(`El turno ${sessionId} ya está cerrado`)
-      }
+      if (marked.count !== 1) throw new ConflictException(`El turno ${sessionId} ya está cerrado`)
 
-      const session = await tx.cashSession.findUniqueOrThrow({ where: { id: sessionId } })
-      const cut = await this.computeExpected(tx, session)
+      const fresh = await tx.cashSession.findUniqueOrThrow({ where: { id: sessionId } })
+      const cut = await this.computeExpected(tx, fresh)
       const countedCash = countCash(dto.countedBreakdown)
       const difference = round2(countedCash - cut.expectedCash)
 

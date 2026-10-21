@@ -30,4 +30,9 @@ describe('CashSession schema (e2e)', () => {
     expect(s.movements.length).toBe(1)
     expect(s.movements[0].type).toBe('in')
   })
+
+  it('no permite dos turnos abiertos para el mismo cajero (índice único parcial)', async () => {
+    await prisma.cashSession.create({ data: { cashierId: 999, openingAmount: 100 } })
+    await expect(prisma.cashSession.create({ data: { cashierId: 999, openingAmount: 100 } })).rejects.toThrow()
+  })
 })

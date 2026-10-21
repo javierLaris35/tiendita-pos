@@ -40,6 +40,11 @@ describe('Cash sessions — cut Z (close) (e2e)', () => {
     await app.close()
   })
 
+  it('corte Z con conteo inválido (denominación no numérica) → 400', async () => {
+    const res = await post(`/cash-sessions/${sessionId}/close`, { countedBreakdown: { abc: 1 } })
+    expect(res.status).toBe(400)
+  })
+
   it('corte Z calcula la diferencia por arqueo y cierra el turno', async () => {
     const res = await post(`/cash-sessions/${sessionId}/close`, { countedBreakdown: { '500': 1, '100': 1 } })
     expect(res.status).toBe(200)

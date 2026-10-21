@@ -13,6 +13,7 @@ describe('Cash sessions — open, movements, cut X (e2e)', () => {
   let server: ReturnType<INestApplication['getHttpServer']>
   let prisma: PrismaService
   let token: string
+  let token2: string
   let sessionId: number
 
   const post = (path: string, body: object) =>
@@ -37,8 +38,12 @@ describe('Cash sessions — open, movements, cut X (e2e)', () => {
     await prisma.user.create({
       data: { email: 'c@t.mx', name: 'cashier', passwordHash: await bcrypt.hash(PW, 10), role: 'cashier' },
     })
+    await prisma.user.create({
+      data: { email: 'c2@t.mx', name: 'cashier2', passwordHash: await bcrypt.hash(PW, 10), role: 'cashier' },
+    })
     await prisma.product.create({ data: { barcode: 'P', name: 'Refresco', price: 62, cost: 40, stock: 100 } })
     token = (await request(server).post('/auth/login').send({ email: 'c@t.mx', password: PW })).body.access_token
+    token2 = (await request(server).post('/auth/login').send({ email: 'c2@t.mx', password: PW })).body.access_token
   })
 
   afterAll(async () => {
@@ -70,5 +75,18 @@ describe('Cash sessions — open, movements, cut X (e2e)', () => {
     await post(`/cash-sessions/${sessionId}/movement`, { type: 'out', amount: 20, reason: 'compra' })
     const x = await get(`/cash-sessions/${sessionId}/cut`)
     expect(Number(x.body.expectedCash)).toBeCloseTo(592) // 562 + 50 - 20
+  })
+
+  it('otro cajero no puede leer el corte de un turno ajeno → 403', async () => {
+    const res = await request(server).get(`/cash-sessions/${sessionId}/cut`).auth(token2, { type: 'bearer' })
+    expect(res.status).toBe(403)
+  })
+
+  it('otro cajero no puede mover efectivo de un turno ajeno → 403', async () => {
+    const res = await request(server)
+      .post(`/cash-sessions/${sessionId}/movement`)
+      .auth(token2, { type: 'bearer' })
+      .send({ type: 'in', amount: 10, reason: 'x' })
+    expect(res.status).toBe(403)
   })
 })
