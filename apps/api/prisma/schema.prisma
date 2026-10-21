@@ -75,10 +75,11 @@ model Sale {
   taxTotal    Decimal       @db.Decimal(12, 2)
   total       Decimal       @db.Decimal(12, 2)
   profitTotal Decimal       @db.Decimal(12, 2)
-  change      Decimal       @default(0) @db.Decimal(12, 2)
-  status      SaleStatus    @default(completed)
-  items       SaleItem[]
-  payments    SalePayment[]
+  change        Decimal       @default(0) @db.Decimal(12, 2)
+  status        SaleStatus    @default(completed)
+  cashSessionId Int?
+  items         SaleItem[]
+  payments      SalePayment[]
 }
 
 /// Línea de un ticket, con valores congelados al momento de la venta.
@@ -131,4 +132,41 @@ model InventoryMovement {
   createdAt  DateTime       @default(now())
 
   @@index([productId, createdAt])
+}
+
+enum CashMovementType {
+  in
+  out
+}
+
+enum CashSessionStatus {
+  open
+  closed
+}
+
+/// Turno de caja: fondo inicial, movimientos y arqueo al cierre.
+model CashSession {
+  id            Int               @id @default(autoincrement())
+  cashierId     Int
+  openedAt      DateTime          @default(now())
+  openingAmount Decimal           @db.Decimal(12, 2)
+  status        CashSessionStatus @default(open)
+  closedAt      DateTime?
+  expectedCash  Decimal?          @db.Decimal(12, 2)
+  countedCash   Decimal?          @db.Decimal(12, 2)
+  difference    Decimal?          @db.Decimal(12, 2)
+  notes         String?
+  movements     CashMovement[]
+}
+
+/// Entrada o retiro de efectivo dentro de un turno.
+model CashMovement {
+  id        Int              @id @default(autoincrement())
+  sessionId Int
+  type      CashMovementType
+  amount    Decimal          @db.Decimal(12, 2)
+  reason    String
+  userId    Int?
+  createdAt DateTime         @default(now())
+  session   CashSession      @relation(fields: [sessionId], references: [id])
 }
