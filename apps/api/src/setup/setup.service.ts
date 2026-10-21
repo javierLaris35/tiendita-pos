@@ -33,7 +33,7 @@ export class SetupService {
       }),
       this.prisma.user.upsert({
         where: { email: dto.admin.email },
-        update: {},
+        update: { name: dto.admin.name, passwordHash, role: 'admin' },
         create: { email: dto.admin.email, name: dto.admin.name, passwordHash, role: 'admin' },
       }),
     ])

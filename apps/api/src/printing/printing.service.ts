@@ -13,7 +13,7 @@ export class PrinterService {
   ) {}
 
   private async store(): Promise<{ businessName: string; ticketFooter?: string }> {
-    const s = await this.prisma.storeSettings.findFirst({ orderBy: { id: 'desc' } })
+    const s = await this.prisma.storeSettings.findFirst({ where: { setupComplete: true }, orderBy: { id: 'desc' } })
     return {
       businessName: s?.businessName ?? this.config.get<string>('BUSINESS_NAME') ?? 'Mi Tiendita',
       ticketFooter: s?.ticketFooter ?? this.config.get<string>('TICKET_FOOTER') ?? undefined,

@@ -1,13 +1,14 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { submitSetup } from '../api'
 
 type Fields = {
   businessName: string
   rfc: string
+  ticketHeader: string
   ticketFooter: string
   defaultIvaRate: string
   printerType: 'none' | 'network' | 'serial'
+  printerTarget: string
   adminName: string
   adminEmail: string
   adminPassword: string
@@ -16,16 +17,17 @@ type Fields = {
 const initial: Fields = {
   businessName: '',
   rfc: '',
+  ticketHeader: '',
   ticketFooter: '',
   defaultIvaRate: '0.16',
   printerType: 'none',
+  printerTarget: '',
   adminName: '',
   adminEmail: '',
   adminPassword: '',
 }
 
 export default function Setup() {
-  const navigate = useNavigate()
   const [form, setForm] = useState<Fields>(initial)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -43,19 +45,22 @@ export default function Setup() {
       await submitSetup({
         businessName: form.businessName.trim(),
         rfc: form.rfc.trim() || undefined,
+        ticketHeader: form.ticketHeader.trim() || undefined,
         ticketFooter: form.ticketFooter.trim() || undefined,
         defaultIvaRate: Number.isFinite(iva) ? iva : undefined,
         printerType: form.printerType,
+        printerTarget: form.printerTarget.trim() || undefined,
         admin: {
           name: form.adminName.trim(),
           email: form.adminEmail.trim(),
           password: form.adminPassword,
         },
       })
-      navigate('/login')
+      // Recarga completa: reinicia el SetupGate, que ya verá el setup completo
+      // y dejará pasar al login (en Electron no hay recarga natural).
+      window.location.assign('/login')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error')
-    } finally {
       setSaving(false)
     }
   }
@@ -72,6 +77,7 @@ export default function Setup() {
 
         <input className={input} placeholder="Nombre de la tienda" value={form.businessName} onChange={set('businessName')} required />
         <input className={input} placeholder="RFC (opcional)" value={form.rfc} onChange={set('rfc')} />
+        <input className={input} placeholder="Encabezado del ticket (opcional)" value={form.ticketHeader} onChange={set('ticketHeader')} />
         <input className={input} placeholder="Pie del ticket (opcional)" value={form.ticketFooter} onChange={set('ticketFooter')} />
         <input className={input} placeholder="IVA por defecto (ej. 0.16)" value={form.defaultIvaRate} onChange={set('defaultIvaRate')} />
 
@@ -80,6 +86,14 @@ export default function Setup() {
           <option value="network">Impresora de red</option>
           <option value="serial">Impresora serial/USB</option>
         </select>
+        {form.printerType !== 'none' && (
+          <input
+            className={input}
+            placeholder={form.printerType === 'network' ? 'IP:puerto (ej. 192.168.1.50:9100)' : 'Puerto (ej. COM1)'}
+            value={form.printerTarget}
+            onChange={set('printerTarget')}
+          />
+        )}
 
         <div className="pt-2">
           <p className="text-sm font-medium text-ink">Administrador</p>
