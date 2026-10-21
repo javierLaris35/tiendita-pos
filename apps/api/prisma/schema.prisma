@@ -38,10 +38,12 @@ model Product {
   price     Decimal     @db.Decimal(12, 2)
   cost      Decimal     @default(0) @db.Decimal(12, 2)
   stock     Decimal     @default(0) @db.Decimal(12, 3)
-  ivaRate   Decimal     @default(0) @db.Decimal(5, 4)
-  iepsRate  Decimal     @default(0) @db.Decimal(5, 4)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  ivaRate         Decimal  @default(0) @db.Decimal(5, 4)
+  iepsRate        Decimal  @default(0) @db.Decimal(5, 4)
+  wholesalePrice  Decimal? @db.Decimal(12, 2)
+  wholesaleMinQty Decimal? @db.Decimal(12, 3)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 /// Catálogo de referencia (precargado desde Open Food Facts o armado al escanear).
@@ -51,4 +53,58 @@ model CatalogItem {
   brand    String?
   category String?
   image    String?
+}
+
+enum PaymentMethod {
+  cash
+  card
+  transfer
+}
+
+enum SaleStatus {
+  completed
+  returned
+}
+
+/// Ticket de venta.
+model Sale {
+  id          Int           @id @default(autoincrement())
+  cashierId   Int
+  createdAt   DateTime      @default(now())
+  subtotal    Decimal       @db.Decimal(12, 2)
+  taxTotal    Decimal       @db.Decimal(12, 2)
+  total       Decimal       @db.Decimal(12, 2)
+  profitTotal Decimal       @db.Decimal(12, 2)
+  status      SaleStatus    @default(completed)
+  items       SaleItem[]
+  payments    SalePayment[]
+}
+
+/// Línea de un ticket, con valores congelados al momento de la venta.
+model SaleItem {
+  id          Int     @id @default(autoincrement())
+  saleId      Int
+  productId   Int
+  barcode     String
+  name        String
+  quantity    Decimal @db.Decimal(12, 3)
+  unitPrice   Decimal @db.Decimal(12, 2)
+  unitCost    Decimal @db.Decimal(12, 2)
+  ivaRate     Decimal @db.Decimal(5, 4)
+  iepsRate    Decimal @db.Decimal(5, 4)
+  lineTotal   Decimal @db.Decimal(12, 2)
+  lineTax     Decimal @db.Decimal(12, 2)
+  lineProfit  Decimal @db.Decimal(12, 2)
+  usedWholesale Boolean @default(false)
+  returnedQty Decimal @default(0) @db.Decimal(12, 3)
+  sale        Sale    @relation(fields: [saleId], references: [id])
+}
+
+/// Pago de un ticket (permite pago mixto: varios por venta).
+model SalePayment {
+  id     Int           @id @default(autoincrement())
+  saleId Int
+  method PaymentMethod
+  amount Decimal       @db.Decimal(12, 2)
+  sale   Sale          @relation(fields: [saleId], references: [id])
 }
