@@ -104,7 +104,8 @@ export class Orchestrator {
         DATABASE_URL: this.databaseUrl,
         JWT_SECRET: this.paths.jwtSecret,
         PORT: String(API_PORT),
-        CORS_ORIGIN: 'true',
+        // Sin CORS_ORIGIN: la API refleja el Origin (incluido el `null` del
+        // web empaquetado en file://).
       },
       stdio: 'ignore',
     })

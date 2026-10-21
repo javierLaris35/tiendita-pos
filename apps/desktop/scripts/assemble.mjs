@@ -14,9 +14,9 @@ const API_PORT = 51732
 const PG_SRC = process.env.PG_SRC ?? 'C:/CustomDevs/pg-portable/pgsql'
 const PNPM = 'corepack pnpm@9.12.0'
 
-function run(cmd, env = {}) {
+function run(cmd, env = {}, cwd = root) {
   console.log('>', cmd)
-  execSync(cmd, { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } })
+  execSync(cmd, { cwd, stdio: 'inherit', env: { ...process.env, ...env } })
 }
 
 rmSync(staging, { recursive: true, force: true })
@@ -32,6 +32,12 @@ run(`${PNPM} -C apps/api build`)
 run(`${PNPM} --filter @tiendita/api deploy --prod "${join(staging, 'api')}"`)
 cpSync(join(root, 'apps/api/dist'), join(staging, 'api/dist'), { recursive: true })
 cpSync(join(root, 'apps/api/prisma'), join(staging, 'api/prisma'), { recursive: true })
+
+// pnpm deploy NO re-genera el cliente Prisma: hay que generarlo dentro del deploy
+// para que el query engine quede en staging/api/node_modules/.prisma/client.
+const stagingApi = join(staging, 'api')
+const prismaCli = join(stagingApi, 'node_modules', 'prisma', 'build', 'index.js')
+run(`node "${prismaCli}" generate --schema "${join(stagingApi, 'prisma', 'schema.prisma')}"`, {}, stagingApi)
 
 // 3. Postgres portable
 cpSync(PG_SRC, join(staging, 'pgsql'), { recursive: true })
