@@ -75,6 +75,7 @@ model Sale {
   taxTotal    Decimal       @db.Decimal(12, 2)
   total       Decimal       @db.Decimal(12, 2)
   profitTotal Decimal       @db.Decimal(12, 2)
+  change      Decimal       @default(0) @db.Decimal(12, 2)
   status      SaleStatus    @default(completed)
   items       SaleItem[]
   payments    SalePayment[]

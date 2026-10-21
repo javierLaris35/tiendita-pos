@@ -42,6 +42,9 @@ describe('Sales — create (e2e)', () => {
     await prisma.product.create({
       data: { barcode: 'WS', name: 'Mayoreo', price: 10, cost: 5, stock: 100, wholesalePrice: 8, wholesaleMinQty: 3 },
     })
+    await prisma.product.create({
+      data: { barcode: 'CH', name: 'Cambio', price: 62, cost: 40, stock: 100 },
+    })
     token = (await request(server).post('/auth/login').send({ email: 'c@t.mx', password: PW })).body.access_token
   })
 
@@ -110,5 +113,30 @@ describe('Sales — create (e2e)', () => {
     expect(res.status).toBe(201)
     expect(res.body.items[0].usedWholesale).toBe(true)
     expect(Number(res.body.items[0].unitPrice)).toBe(8)
+  })
+
+  it('sobrepago en efectivo → 201 y guarda el cambio', async () => {
+    const res = await post('/sales', {
+      items: [{ barcode: 'CH', quantity: 1 }],
+      payments: [{ method: 'cash', amount: 100 }],
+    })
+    expect(res.status).toBe(201)
+    expect(Number(res.body.change)).toBeCloseTo(38) // total 62, recibido 100
+  })
+
+  it('sobrepago no cubierto por efectivo (solo tarjeta) → 400', async () => {
+    const res = await post('/sales', {
+      items: [{ barcode: 'CH', quantity: 1 }],
+      payments: [{ method: 'card', amount: 100 }],
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('pago insuficiente (menos que el total) → 400', async () => {
+    const res = await post('/sales', {
+      items: [{ barcode: 'CH', quantity: 1 }],
+      payments: [{ method: 'cash', amount: 50 }],
+    })
+    expect(res.status).toBe(400)
   })
 })

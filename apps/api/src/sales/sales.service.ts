@@ -57,8 +57,14 @@ export class SalesService {
 
       const totals = computeTotals(lines)
       const paid = round2(dto.payments.reduce((s, p) => s + p.amount, 0))
-      if (Math.abs(paid - totals.total) > 0.01) {
-        throw new BadRequestException(`Los pagos (${paid}) no cuadran con el total (${totals.total})`)
+      if (paid < totals.total - 0.01) {
+        throw new BadRequestException(`Los pagos (${paid}) no alcanzan el total (${totals.total})`)
+      }
+      // El sobrepago (cambio) solo puede devolverse del efectivo recibido.
+      const change = round2(paid - totals.total)
+      const cashPaid = round2(dto.payments.filter((p) => p.method === 'cash').reduce((s, p) => s + p.amount, 0))
+      if (change > cashPaid + 0.01) {
+        throw new BadRequestException(`El sobrepago (${change}) no puede exceder el efectivo recibido (${cashPaid})`)
       }
 
       // Decremento atómico condicional: cierra la ventana de carrera (multicaja a futuro).
@@ -79,6 +85,7 @@ export class SalesService {
           taxTotal: totals.taxTotal,
           total: totals.total,
           profitTotal: totals.profitTotal,
+          change,
           items: {
             create: lines.map((l) => ({
               productId: l.product.id,
