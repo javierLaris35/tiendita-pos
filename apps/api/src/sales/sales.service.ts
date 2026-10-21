@@ -91,4 +91,25 @@ export class SalesService {
     if (!sale) throw new NotFoundException(`No existe la venta ${id}`)
     return sale
   }
+
+  /** Devuelve/cancela un ticket completo: reingresa stock, revierte el impuesto
+   * con la línea, y lo marca como devuelto. Bloquea la doble devolución. */
+  async returnSale(id: number): Promise<Sale> {
+    return this.prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.findUnique({ where: { id }, include: { items: true } })
+      if (!sale) throw new NotFoundException(`No existe la venta ${id}`)
+      if (sale.status === 'returned') throw new ConflictException(`La venta ${id} ya fue devuelta`)
+
+      for (const item of sale.items) {
+        await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
+        await tx.saleItem.update({ where: { id: item.id }, data: { returnedQty: item.quantity } })
+      }
+
+      return tx.sale.update({
+        where: { id },
+        data: { status: 'returned' },
+        include: { items: true, payments: true },
+      })
+    })
+  }
 }
