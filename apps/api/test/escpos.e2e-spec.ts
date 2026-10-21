@@ -43,4 +43,22 @@ describe('escpos (ESC/POS builder)', () => {
   it('el comando de apertura de cajón es la secuencia estándar', () => {
     expect(OPEN_DRAWER.equals(Buffer.from([0x1b, 0x70, 0x00, 0x19, 0xfa]))).toBe(true)
   })
+
+  it('money con negativos pone el signo antes del símbolo', () => {
+    expect(money(-38)).toBe('-$38.00')
+  })
+
+  it('selecciona la página de código y codifica acentos (latin1/WPC1252)', () => {
+    const buf = buildSaleTicket({
+      businessName: 'Café Piñata',
+      items: [{ name: 'Jalapeño', quantity: 1, lineTotal: 10 }],
+      total: 10,
+      taxTotal: 0,
+      change: 0,
+      payments: [{ method: 'cash', amount: 10 }],
+    })
+    expect(buf.includes(Buffer.from([0x1b, 0x74, 16]))).toBe(true) // ESC t 16 (WPC1252)
+    expect(buf.toString('latin1')).toContain('Jalapeño') // round-trip latin1
+    expect(buf.includes(Buffer.from([0xf1]))).toBe(true) // 'ñ' = 0xF1
+  })
 })

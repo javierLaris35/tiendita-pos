@@ -15,12 +15,23 @@ export const CUT = Buffer.from([GS, 0x56, 0x00])
 /** Apertura de cajón (ESC p 0 25 250). */
 export const OPEN_DRAWER = Buffer.from([ESC, 0x70, 0x00, 0x19, 0xfa])
 
+/** Página de código por defecto: WPC1252 (compatible con 'latin1'/Windows-1252),
+ * para que los acentos del español salgan bien. El valor correcto depende de la
+ * impresora y se parametriza en el instalador (Plan 8). */
+export const DEFAULT_CODEPAGE = 16
+
+/** ESC t n — selecciona la página de código de la impresora. */
+function codePageCmd(n: number): Buffer {
+  return Buffer.from([ESC, 0x74, n])
+}
+
 function line(text = ''): Buffer {
   return Buffer.concat([Buffer.from(text, 'latin1'), LF])
 }
 
 export function money(n: number): string {
-  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const sign = n < 0 ? '-' : ''
+  return sign + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 const METHOD_LABEL: Record<string, string> = {
@@ -37,11 +48,13 @@ export interface SaleTicketData {
   taxTotal: number
   change: number
   payments: { method: string; amount: number }[]
+  codepage?: number
 }
 
 export function buildSaleTicket(d: SaleTicketData): Buffer {
   const parts: Buffer[] = [
     INIT,
+    codePageCmd(d.codepage ?? DEFAULT_CODEPAGE),
     CENTER,
     BOLD_ON,
     line(d.businessName),
@@ -74,11 +87,13 @@ export interface CorteTicketData {
   expectedCash: number
   countedCash: number
   difference: number
+  codepage?: number
 }
 
 export function buildCorteTicket(d: CorteTicketData): Buffer {
   const parts: Buffer[] = [
     INIT,
+    codePageCmd(d.codepage ?? DEFAULT_CODEPAGE),
     CENTER,
     BOLD_ON,
     line(d.businessName),

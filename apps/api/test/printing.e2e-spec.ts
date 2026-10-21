@@ -78,4 +78,28 @@ describe('Printing (e2e)', () => {
     const last = fakeTransport.sent.at(-1)!
     expect(last.equals(Buffer.from([0x1b, 0x70, 0x00, 0x19, 0xfa]))).toBe(true)
   })
+
+  it('imprime el corte de un turno cerrado → 201 con sus montos', async () => {
+    const session = await prisma.cashSession.create({
+      data: {
+        cashierId: 1,
+        openingAmount: 500,
+        status: 'closed',
+        closedAt: new Date(),
+        expectedCash: 562,
+        countedCash: 600,
+        difference: 38,
+      },
+    })
+    const before = fakeTransport.sent.length
+    const res = await post(`/print/corte/${session.id}`)
+    expect(res.status).toBe(201)
+    expect(fakeTransport.sent.length).toBe(before + 1)
+    expect(fakeTransport.sent.at(-1)!.toString('latin1')).toContain('562.00')
+  })
+
+  it('imprimir el corte de un turno inexistente → 404', async () => {
+    const res = await post('/print/corte/999999')
+    expect(res.status).toBe(404)
+  })
 })

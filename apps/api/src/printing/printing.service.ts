@@ -16,6 +16,11 @@ export class PrinterService {
     return this.config.get<string>('BUSINESS_NAME') ?? 'Mi Tiendita'
   }
 
+  private codepage(): number | undefined {
+    const n = Number(this.config.get('PRINTER_CODEPAGE'))
+    return Number.isInteger(n) ? n : undefined
+  }
+
   async printSale(saleId: number): Promise<void> {
     const sale = await this.prisma.sale.findUnique({
       where: { id: saleId },
@@ -35,6 +40,7 @@ export class PrinterService {
       taxTotal: Number(sale.taxTotal),
       change: Number(sale.change),
       payments: sale.payments.map((p) => ({ method: p.method, amount: Number(p.amount) })),
+      codepage: this.codepage(),
     })
     await this.transport.send(buf)
   }
@@ -49,6 +55,7 @@ export class PrinterService {
       expectedCash: Number(session.expectedCash ?? 0),
       countedCash: Number(session.countedCash ?? 0),
       difference: Number(session.difference ?? 0),
+      codepage: this.codepage(),
     })
     await this.transport.send(buf)
   }
