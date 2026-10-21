@@ -57,6 +57,9 @@ export class InventoryService {
   async history(barcode: string): Promise<InventoryMovement[]> {
     const p = await this.prisma.product.findUnique({ where: { barcode } })
     if (!p) throw new NotFoundException(`No existe producto con código ${barcode}`)
-    return this.prisma.inventoryMovement.findMany({ where: { productId: p.id }, orderBy: { createdAt: 'desc' } })
+    return this.prisma.inventoryMovement.findMany({
+      where: { productId: p.id },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    })
   }
 }
