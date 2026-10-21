@@ -1,0 +1,29 @@
+[
+  {
+    "code": "7501055555555",
+    "product_name": "Galletas Marías",
+    "brands": "Gamesa",
+    "categories": "Galletas",
+    "image_url": "https://example.org/galletas.jpg",
+    "countries_tags": ["en:mexico"]
+  },
+  {
+    "code": "7501066666666",
+    "product_name": "Agua natural 1L",
+    "brands": "Bonafont",
+    "countries_tags": ["en:mexico", "en:france"]
+  },
+  {
+    "product_name": "Producto sin código",
+    "countries_tags": ["en:mexico"]
+  },
+  {
+    "code": "7501077777777",
+    "countries_tags": ["en:mexico"]
+  },
+  {
+    "code": "0000000000001",
+    "product_name": "French biscuit",
+    "countries_tags": ["en:france"]
+  }
+]
