@@ -6,6 +6,7 @@ import { CashModule } from './cash/cash.module'
 import { CatalogModule } from './catalog/catalog.module'
 import { HealthController } from './health/health.controller'
 import { InventoryModule } from './inventory/inventory.module'
+import { PrintingModule } from './printing/printing.module'
 import { PrismaModule } from './prisma/prisma.module'
 import { ProductsModule } from './products/products.module'
 import { SalesModule } from './sales/sales.module'
@@ -21,6 +22,7 @@ import { UsersController } from './users/users.controller'
     SalesModule,
     InventoryModule,
     CashModule,
+    PrintingModule,
   ],
   controllers: [HealthController, UsersController],
   providers: [
