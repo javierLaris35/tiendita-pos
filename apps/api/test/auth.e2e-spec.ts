@@ -72,4 +72,21 @@ describe('Auth (e2e)', () => {
     const res = await request(server).get('/users').auth(token, { type: 'bearer' })
     expect(res.status).toBe(403)
   })
+
+  it('login con cuerpo mal formado (sin campos) → 400', async () => {
+    const res = await request(server).post('/auth/login').send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('ruta protegida con token inválido → 401', async () => {
+    const res = await request(server).get('/users/me').auth('garbage.token.xxx', { type: 'bearer' })
+    expect(res.status).toBe(401)
+  })
+
+  it('admin con rol válido entra a /users → 200 y devuelve lista', async () => {
+    const token = await tokenFor(ADMIN_EMAIL, ADMIN_PASSWORD)
+    const res = await request(server).get('/users').auth(token, { type: 'bearer' })
+    expect(res.status).toBe(200)
+    expect(Array.isArray(res.body)).toBe(true)
+  })
 })
