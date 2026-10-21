@@ -9,8 +9,8 @@ import { runSeed } from '../prisma/seed'
 const TEST_URL = 'postgresql://postgres@127.0.0.1:5433/tiendita_test'
 const ADMIN_EMAIL = 'admin@tiendita.mx'
 const ADMIN_PASSWORD = 'admin123'
-const CAJERA_EMAIL = 'cajera@tiendita.mx'
-const CAJERA_PASSWORD = 'cajera123'
+const CASHIER_EMAIL = 'cashier@tiendita.mx'
+const CASHIER_PASSWORD = 'cashier123'
 
 describe('Auth (e2e)', () => {
   let app: INestApplication
@@ -32,10 +32,10 @@ describe('Auth (e2e)', () => {
     await runSeed(prisma)
     await prisma.user.create({
       data: {
-        email: CAJERA_EMAIL,
-        name: 'Cajera',
-        passwordHash: await bcrypt.hash(CAJERA_PASSWORD, 10),
-        role: 'cajera',
+        email: CASHIER_EMAIL,
+        name: 'Cashier',
+        passwordHash: await bcrypt.hash(CASHIER_PASSWORD, 10),
+        role: 'cashier',
       },
     })
   })
@@ -67,8 +67,8 @@ describe('Auth (e2e)', () => {
     expect(res.status).toBe(401)
   })
 
-  it('ruta de solo-admin con rol cajera → 403', async () => {
-    const token = await tokenFor(CAJERA_EMAIL, CAJERA_PASSWORD)
+  it('ruta de solo-admin con rol cashier → 403', async () => {
+    const token = await tokenFor(CASHIER_EMAIL, CASHIER_PASSWORD)
     const res = await request(server).get('/users').auth(token, { type: 'bearer' })
     expect(res.status).toBe(403)
   })
