@@ -78,9 +78,12 @@ export class SalesService {
         }
       }
 
+      const openSession = await tx.cashSession.findFirst({ where: { cashierId, status: 'open' } })
+
       const sale = await tx.sale.create({
         data: {
           cashierId,
+          cashSessionId: openSession?.id ?? null,
           subtotal: totals.subtotal,
           taxTotal: totals.taxTotal,
           total: totals.total,
