@@ -37,6 +37,7 @@ describe('Printing (e2e)', () => {
     server = app.getHttpServer()
     prisma = app.get(PrismaService)
 
+    await prisma.storeSettings.deleteMany()
     await prisma.cashMovement.deleteMany()
     await prisma.cashSession.deleteMany()
     await prisma.inventoryMovement.deleteMany()
@@ -101,5 +102,11 @@ describe('Printing (e2e)', () => {
   it('imprimir el corte de un turno inexistente → 404', async () => {
     const res = await post('/print/corte/999999')
     expect(res.status).toBe(404)
+  })
+
+  it('el ticket usa el nombre de negocio de la configuración', async () => {
+    await prisma.storeSettings.create({ data: { businessName: 'Mi Negocio', setupComplete: true } })
+    await post(`/print/sale/${saleId}`)
+    expect(fakeTransport.sent.at(-1)!.toString('latin1')).toContain('Mi Negocio')
   })
 })

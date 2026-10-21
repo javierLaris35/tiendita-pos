@@ -12,8 +12,12 @@ export class PrinterService {
     @Inject(PRINTER_TRANSPORT) private readonly transport: PrinterTransport,
   ) {}
 
-  private businessName(): string {
-    return this.config.get<string>('BUSINESS_NAME') ?? 'Mi Tiendita'
+  private async store(): Promise<{ businessName: string; ticketFooter?: string }> {
+    const s = await this.prisma.storeSettings.findFirst({ orderBy: { id: 'desc' } })
+    return {
+      businessName: s?.businessName ?? this.config.get<string>('BUSINESS_NAME') ?? 'Mi Tiendita',
+      ticketFooter: s?.ticketFooter ?? this.config.get<string>('TICKET_FOOTER') ?? undefined,
+    }
   }
 
   private codepage(): number | undefined {
@@ -28,9 +32,10 @@ export class PrinterService {
     })
     if (!sale) throw new NotFoundException(`No existe la venta ${saleId}`)
 
+    const store = await this.store()
     const buf = buildSaleTicket({
-      businessName: this.businessName(),
-      footer: this.config.get<string>('TICKET_FOOTER'),
+      businessName: store.businessName,
+      footer: store.ticketFooter,
       items: sale.items.map((i) => ({
         name: i.name,
         quantity: Number(i.quantity),
@@ -49,8 +54,9 @@ export class PrinterService {
     const session = await this.prisma.cashSession.findUnique({ where: { id: sessionId } })
     if (!session) throw new NotFoundException(`No existe el turno ${sessionId}`)
 
+    const store = await this.store()
     const buf = buildCorteTicket({
-      businessName: this.businessName(),
+      businessName: store.businessName,
       openingAmount: Number(session.openingAmount),
       expectedCash: Number(session.expectedCash ?? 0),
       countedCash: Number(session.countedCash ?? 0),

@@ -10,6 +10,7 @@ import { PrintingModule } from './printing/printing.module'
 import { PrismaModule } from './prisma/prisma.module'
 import { ProductsModule } from './products/products.module'
 import { SalesModule } from './sales/sales.module'
+import { SetupModule } from './setup/setup.module'
 import { UsersController } from './users/users.controller'
 
 @Module({
@@ -23,6 +24,7 @@ import { UsersController } from './users/users.controller'
     InventoryModule,
     CashModule,
     PrintingModule,
+    SetupModule,
   ],
   controllers: [HealthController, UsersController],
   providers: [
