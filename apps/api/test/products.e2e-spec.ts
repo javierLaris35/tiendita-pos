@@ -13,6 +13,7 @@ describe('Products (e2e)', () => {
   let server: ReturnType<INestApplication['getHttpServer']>
   let prisma: PrismaService
   let adminToken: string
+  let managerToken: string
   let cashierToken: string
 
   const mkUser = async (email: string, role: 'admin' | 'manager' | 'cashier') =>
@@ -35,8 +36,10 @@ describe('Products (e2e)', () => {
     await prisma.product.deleteMany()
     await prisma.user.deleteMany()
     await mkUser('admin@t.mx', 'admin')
+    await mkUser('manager@t.mx', 'manager')
     await mkUser('cashier@t.mx', 'cashier')
     adminToken = await token('admin@t.mx')
+    managerToken = await token('manager@t.mx')
     cashierToken = await token('cashier@t.mx')
   })
 
@@ -64,5 +67,26 @@ describe('Products (e2e)', () => {
   it('GET /products/:barcode inexistente → 404', async () => {
     const res = await get('/products/NOPE', adminToken)
     expect(res.status).toBe(404)
+  })
+
+  it('manager crea un producto → 201', async () => {
+    const res = await post('/products', managerToken, { barcode: 'BM1', name: 'Jabón', price: 22 })
+    expect(res.status).toBe(201)
+    expect(res.body.barcode).toBe('BM1')
+  })
+
+  it('ivaRate/iepsRate vía POST se persisten como Decimal', async () => {
+    const created = await post('/products', adminToken, {
+      barcode: 'BTAX',
+      name: 'Refresco',
+      price: 18,
+      ivaRate: 0.16,
+      iepsRate: 0.08,
+    })
+    expect(created.status).toBe(201)
+    const res = await get('/products/BTAX', adminToken)
+    expect(res.status).toBe(200)
+    expect(Number(res.body.ivaRate)).toBeCloseTo(0.16)
+    expect(Number(res.body.iepsRate)).toBeCloseTo(0.08)
   })
 })
