@@ -39,4 +39,11 @@ describe('Product & CatalogItem schema (e2e)', () => {
     })
     expect(c.code).toBe('7501000222222')
   })
+
+  it('la BD no permite stock negativo (CHECK)', async () => {
+    const p = await prisma.product.create({
+      data: { barcode: '7501000333333', name: 'Prueba', price: 1, stock: 5 },
+    })
+    await expect(prisma.product.update({ where: { id: p.id }, data: { stock: -1 } })).rejects.toThrow()
+  })
 })

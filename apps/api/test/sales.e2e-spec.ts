@@ -36,6 +36,12 @@ describe('Sales — create (e2e)', () => {
     await prisma.product.create({
       data: { barcode: 'P', name: 'Refresco', price: 62, cost: 40, ivaRate: '0.1600', iepsRate: '0.0800', stock: 100 },
     })
+    await prisma.product.create({
+      data: { barcode: 'LOW', name: 'Escaso', price: 10, cost: 5, stock: 5 },
+    })
+    await prisma.product.create({
+      data: { barcode: 'WS', name: 'Mayoreo', price: 10, cost: 5, stock: 100, wholesalePrice: 8, wholesaleMinQty: 3 },
+    })
     token = (await request(server).post('/auth/login').send({ email: 'c@t.mx', password: PW })).body.access_token
   })
 
@@ -83,5 +89,26 @@ describe('Sales — create (e2e)', () => {
     const got = await get(`/sales/${sale.body.id}`)
     expect(got.status).toBe(200)
     expect(Number(got.body.items[0].unitPrice)).toBe(62)
+  })
+
+  it('líneas duplicadas del mismo producto no sobrevenden el stock → 409', async () => {
+    const before = Number((await prisma.product.findUnique({ where: { barcode: 'LOW' } }))!.stock)
+    const res = await post('/sales', {
+      items: [{ barcode: 'LOW', quantity: 3 }, { barcode: 'LOW', quantity: 3 }],
+      payments: [{ method: 'cash', amount: 60 }],
+    })
+    expect(res.status).toBe(409)
+    const after = Number((await prisma.product.findUnique({ where: { barcode: 'LOW' } }))!.stock)
+    expect(after).toBe(before)
+  })
+
+  it('mayoreo vía POST persiste usedWholesale y el precio de mayoreo', async () => {
+    const res = await post('/sales', {
+      items: [{ barcode: 'WS', quantity: 3 }],
+      payments: [{ method: 'cash', amount: 24 }],
+    })
+    expect(res.status).toBe(201)
+    expect(res.body.items[0].usedWholesale).toBe(true)
+    expect(Number(res.body.items[0].unitPrice)).toBe(8)
   })
 })

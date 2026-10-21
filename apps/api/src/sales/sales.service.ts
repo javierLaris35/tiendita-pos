@@ -28,9 +28,6 @@ export class SalesService {
       for (const it of dto.items) {
         const product = await tx.product.findUnique({ where: { barcode: it.barcode } })
         if (!product) throw new NotFoundException(`No existe producto con código ${it.barcode}`)
-        if (it.quantity > Number(product.stock)) {
-          throw new ConflictException(`Stock insuficiente de ${product.name} (${product.stock} disponibles)`)
-        }
         const { unitPrice, usedWholesale } = pickUnitPrice(
           {
             price: Number(product.price),
@@ -46,14 +43,33 @@ export class SalesService {
         lines.push({ product, quantity: it.quantity, unitPrice, usedWholesale, unitCost, ivaRate, iepsRate, ...r })
       }
 
+      // Acumula lo pedido por producto (cubre líneas duplicadas del mismo producto en el ticket).
+      const neededByProduct = new Map<number, { needed: number; product: Product }>()
+      for (const l of lines) {
+        const cur = neededByProduct.get(l.product.id)
+        neededByProduct.set(l.product.id, { needed: (cur?.needed ?? 0) + l.quantity, product: l.product })
+      }
+      for (const { needed, product } of neededByProduct.values()) {
+        if (needed > Number(product.stock)) {
+          throw new ConflictException(`Stock insuficiente de ${product.name} (${product.stock} disponibles)`)
+        }
+      }
+
       const totals = computeTotals(lines)
       const paid = round2(dto.payments.reduce((s, p) => s + p.amount, 0))
       if (Math.abs(paid - totals.total) > 0.01) {
         throw new BadRequestException(`Los pagos (${paid}) no cuadran con el total (${totals.total})`)
       }
 
-      for (const l of lines) {
-        await tx.product.update({ where: { id: l.product.id }, data: { stock: { decrement: l.quantity } } })
+      // Decremento atómico condicional: cierra la ventana de carrera (multicaja a futuro).
+      for (const { needed, product } of neededByProduct.values()) {
+        const updated = await tx.product.updateMany({
+          where: { id: product.id, stock: { gte: needed } },
+          data: { stock: { decrement: needed } },
+        })
+        if (updated.count !== 1) {
+          throw new ConflictException(`Stock insuficiente de ${product.name}`)
+        }
       }
 
       return tx.sale.create({
@@ -98,16 +114,18 @@ export class SalesService {
     return this.prisma.$transaction(async (tx) => {
       const sale = await tx.sale.findUnique({ where: { id }, include: { items: true } })
       if (!sale) throw new NotFoundException(`No existe la venta ${id}`)
-      if (sale.status === 'returned') throw new ConflictException(`La venta ${id} ya fue devuelta`)
+
+      // Transición de estado atómica: de dos devoluciones concurrentes, solo una afecta la fila.
+      const marked = await tx.sale.updateMany({ where: { id, status: 'completed' }, data: { status: 'returned' } })
+      if (marked.count !== 1) throw new ConflictException(`La venta ${id} ya fue devuelta`)
 
       for (const item of sale.items) {
         await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
         await tx.saleItem.update({ where: { id: item.id }, data: { returnedQty: item.quantity } })
       }
 
-      return tx.sale.update({
+      return tx.sale.findUniqueOrThrow({
         where: { id },
-        data: { status: 'returned' },
         include: { items: true, payments: true },
       })
     })
