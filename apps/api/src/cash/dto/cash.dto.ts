@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator'
+import { IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Min } from 'class-validator'
 
 export class OpenDto {
   @IsNumber()
@@ -17,4 +17,13 @@ export class MovementDto {
   @IsString()
   @IsNotEmpty()
   reason!: string
+}
+
+export class CloseDto {
+  @IsObject()
+  countedBreakdown!: Record<string, number>
+
+  @IsOptional()
+  @IsString()
+  notes?: string
 }

@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { Roles } from '../auth/roles.decorator'
 import { RolesGuard } from '../auth/roles.guard'
 import { CashService } from './cash.service'
-import { MovementDto, OpenDto } from './dto/cash.dto'
+import { CloseDto, MovementDto, OpenDto } from './dto/cash.dto'
 
 @Controller('cash-sessions')
 @UseGuards(JwtAuthGuard)
@@ -32,5 +32,13 @@ export class CashController {
   @Get(':id/cut')
   cutX(@Param('id', ParseIntPipe) id: number) {
     return this.cash.cutX(id)
+  }
+
+  @Post(':id/close')
+  @HttpCode(200)
+  @UseGuards(RolesGuard)
+  @Roles('admin', 'manager', 'cashier')
+  close(@Param('id', ParseIntPipe) id: number, @Body() dto: CloseDto) {
+    return this.cash.close(id, dto)
   }
 }
