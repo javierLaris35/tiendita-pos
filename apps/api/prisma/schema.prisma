@@ -109,3 +109,26 @@ model SalePayment {
   amount Decimal       @db.Decimal(12, 2)
   sale   Sale          @relation(fields: [saleId], references: [id])
 }
+
+enum MovementReason {
+  sale
+  return
+  adjustment
+  waste
+  receipt
+}
+
+/// Rastro de auditoría: cada cambio de stock deja un movimiento con su motivo.
+model InventoryMovement {
+  id         Int            @id @default(autoincrement())
+  productId  Int
+  reason     MovementReason
+  quantity   Decimal        @db.Decimal(12, 3)
+  stockAfter Decimal        @db.Decimal(12, 3)
+  userId     Int?
+  saleId     Int?
+  note       String?
+  createdAt  DateTime       @default(now())
+
+  @@index([productId, createdAt])
+}
